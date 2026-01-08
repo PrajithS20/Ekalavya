@@ -387,7 +387,7 @@ export default function CareerGuidance() {
                                 <FileText className="text-purple-400" size={20} /> AI Resume Architect
                             </h3>
                             <p className="text-sm text-gray-300 mt-1">
-                                Build a perfect resume tailored to your dream job using your Sentinel projects.
+                                Build a perfect resume tailored to your dream job using your Ekalavya projects.
                             </p>
                         </div>
                         <Link to="/resume-builder" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">

@@ -6,7 +6,7 @@ class FoundryAgent:
         self.client = openai_client
         self.model_id = "llama-3.3-70b-versatile" # Using the fast Groq model
 
-    def chat_architect(self, user_message, current_code, project_context, language="english"):
+    def chat_architect(self, user_message, current_code, project_context, language="english", spoken_language="english"):
         """
         The Architect: A helpful Senior Mentor.
         """
@@ -17,7 +17,7 @@ class FoundryAgent:
         Phase: {project_context.get('phase_title')}
         Objective: {project_context.get('phase_description')}
         
-        Current Code:
+        Current Code (Language: {language}):
         ```
         {current_code}
         ```
@@ -30,18 +30,13 @@ class FoundryAgent:
         5. Your goal is to help them learn by DOING, even if that means showing them the path.
         """
 
-        if language == "tamil":
+        if spoken_language == "tamil":
             base_prompt += """
-            CRITICAL INSTRUCTION - PERSONA CHANGE:
-            You are a friendly mentor from Tamil Nadu instructing a rural student.
-            1. SPEAK IN TAMIL SCRIPT (தமிழ்) mixed with English technical terms.
-            2. DO NOT use Tanglish (Romanized Tamil). Use the Tamil alphabet.
-            3. DO NOT translate technical keywords (keep 'function', 'variable', 'loop', 'API', 'print' in English).
-            
-            Example Tone:
-            "வணக்கம் தம்பி! இந்த code-ல ஒரு சின்ன mistake இருக்கு. 'function' define பண்ணும்போது 'def' use பண்ணனும்."
-            
-            Be helpful, encouraging, and clear.
+            IMPORTANT: The user prefers Tamil. 
+            Speak in "Tanglish" (Tamil + English mixed).
+            - Explain concepts in Tamil/Tanglish.
+            - Keep technical terms in English (e.g. "function", "array", "loop").
+            - Example: "Indha code la loop use pannanum because..."
             """
 
         try:
@@ -56,17 +51,17 @@ class FoundryAgent:
         except Exception as e:
             return f"The Architect is offline temporarily. ({str(e)})"
 
-    def validate_code(self, user_code, phase_objective):
+    def validate_code(self, user_code, phase_objective, language="python"):
         """
         The Interpreter: Simulates code execution and provides feedback.
         Returns JSON: { 'output': '...', 'review': '...' }
         """
         system_prompt = f"""
-        Act as a Python Interpreter ("The Interpreter").
+        Act as a {language} Interpreter ("The Interpreter").
         Phase Objective: {phase_objective}
         
         CODE TO ANALYZE:
-        ```python
+        ```{language}
         {user_code}
         ```
         
@@ -100,13 +95,48 @@ class FoundryAgent:
                 "review": "Could not verify code at this time."
             }
 
-    def verify_screenshot(self, image_url, phase_objective):
+    def verify_screenshot(self, image_url, phase_objective, spoken_language="english"):
         """
         The Auditor: Verifies visual proof of work using Vision model.
         Returns JSON: { 'approved': bool, 'feedback': 'string' }
         """
         try:
             print("Auditing Screenshot with Vision Model...")
+
+            # Construct the prompt dynamically
+            auditor_prompt = f"""
+            You are a STRICT Technical Auditor.
+            Your job is to verify if this screenshot proves the user completed the objective: '{phase_objective}'.
+
+            STRICT RULES:
+            1. You are an expert in {spoken_language}. Provide {spoken_language} code snippets.
+            2. Verify if the code is valid {spoken_language}.
+            3. If the user is stuck, provide a specific hint.
+            """
+
+            if spoken_language == "tamil":
+                auditor_prompt += """
+            IMPORTANT: The user prefers Tamil. 
+            Speak in "Tanglish" (Tamil + English mixed).
+            - Explain concepts in Tamil/Tanglish.
+            - Keep technical terms in English (e.g. "function", "array", "loop").
+            - Example: "Indha code la loop use pannanum because..."
+            """
+
+            auditor_prompt += """
+            4. The image MUST contain CODE, TERMINAL OUTPUT, or a UI that matches the objective.
+            5. If the image is unrelated (e.g. a selfie, desktop wallpaper, random meme, or blank screen), REJECT it immediately.
+            6. If the image is a screenshot of the 'EKALAVYA' or 'The Architect' chat interface itself (re-uploading the instructions), REJECT it. The proof must be from an EXTERNAL platform (VS Code, Terminal, Browser, etc.).
+            7. If the image is blurry or unreadable, REJECT it.
+            8. If the proof is weak or ambiguous, REJECT it.
+            
+            Return JSON:
+            {{
+                "approved": true/false,
+                "feedback": "Short, strict reason for approval or rejection."
+            }}
+            """
+
             response = self.client.chat.completions.create(
                 # Use Llama 4 Maverick (Multimodal)
                 model="meta-llama/llama-4-maverick-17b-128e-instruct", 
@@ -114,23 +144,7 @@ class FoundryAgent:
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": f"""
-                            You are a STRICT Technical Auditor.
-                            Your job is to verify if this screenshot proves the user completed the objective: '{phase_objective}'.
-
-                            STRICT RULES:
-                            1. The image MUST contain CODE, TERMINAL OUTPUT, or a UI that matches the objective.
-                            2. If the image is unrelated (e.g. a selfie, desktop wallpaper, random meme, or blank screen), REJECT it immediately.
-                            3. If the image is a screenshot of the 'Sentinel' or 'The Architect' chat interface itself (re-uploading the instructions), REJECT it. The proof must be from an EXTERNAL platform (VS Code, Terminal, Browser, etc.).
-                            4. If the image is blurry or unreadable, REJECT it.
-                            5. If the proof is weak or ambiguous, REJECT it.
-                            
-                            Return JSON:
-                            {{
-                                "approved": true/false,
-                                "feedback": "Short, strict reason for approval or rejection."
-                            }}
-                            """},
+                            {"type": "text", "text": auditor_prompt},
                             {
                                 "type": "image_url",
                                 "image_url": {

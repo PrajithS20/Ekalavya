@@ -24,6 +24,72 @@ export default function ResumeBuilder() {
         }
     };
 
+    const handlePrint = () => {
+        const resumeContent = document.getElementById('resume-preview');
+        if (!resumeContent) return;
+
+        // Create a hidden iframe
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+
+        // Get the iframe's document
+        const iframeDoc = iframe.contentWindow.document;
+
+        // Write content
+        iframeDoc.open();
+        iframeDoc.write(`
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>${resumeData.personal_details?.name || 'Resume'}</title>
+                    ${Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+                .map(node => node.outerHTML)
+                .join('')}
+                    <style>
+                        body { 
+                            margin: 0; 
+                            padding: 20px; 
+                            background: white; 
+                            -webkit-print-color-adjust: exact; 
+                        }
+                        #resume-preview {
+                            width: 100%;
+                            max-width: 100%;
+                            margin: 0 auto;
+                            box-shadow: none;
+                            border: none;
+                        }
+                        /* Ensure multi-page breaks work nicely */
+                        h1, h2, h3, h4, h5, h6 { page-break-after: avoid; }
+                        p, li { page-break-inside: avoid; }
+                        section, .section-break { page-break-inside: avoid; }
+                        
+                        /* Hide things we don't want in print if any leaked */
+                        .no-print { display: none !important; }
+                    </style>
+                </head>
+                <body>
+                    ${resumeContent.outerHTML}
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                                window.parent.document.body.removeChild(window.frameElement);
+                            }, 500);
+                        }
+                    </script>
+                </body>
+            </html>
+        `);
+        iframeDoc.close();
+    };
+
     return (
         <div className="min-h-screen bg-transparent text-gray-200 flex flex-col">
             {/* Header */}
@@ -39,8 +105,11 @@ export default function ResumeBuilder() {
                         </h1>
                     </div>
                     {resumeData && (
-                        <button className="btn-primary flex items-center gap-2 text-sm">
-                            <Download size={16} /> Export PDF
+                        <button
+                            onClick={handlePrint}
+                            className="btn-primary flex items-center gap-2 text-sm cursor-pointer hover:bg-purple-600 transition-colors"
+                        >
+                            <Download size={16} /> Save as PDF
                         </button>
                     )}
                 </div>
@@ -56,7 +125,7 @@ export default function ResumeBuilder() {
                             <h2 className="text-xl font-bold text-white">Target Job</h2>
                         </div>
                         <p className="text-gray-400 text-sm mb-4">
-                            Paste the job description or company name here. The AI will analyze your completed Sentinel projects and build a tailored resume.
+                            Paste the job description or company name here. The AI will analyze your completed Ekalavya projects and build a tailored resume.
                         </p>
                         <textarea
                             className="w-full bg-gray-950/50 border border-gray-700 rounded-xl p-4 text-gray-200 focus:border-purple-500 outline-none transition-all h-64 resize-none font-mono text-sm"
@@ -82,7 +151,7 @@ export default function ResumeBuilder() {
 
                     <div className="bg-blue-900/10 border border-blue-800/30 rounded-2xl p-6">
                         <h3 className="text-blue-300 font-medium mb-2 flex items-center gap-2">
-                            <CheckCircle size={16} /> Sentinel Advantage
+                            <CheckCircle size={16} /> Ekalavya Advantage
                         </h3>
                         <p className="text-sm text-blue-400/80">
                             This AI automatically cites your **Project Lab** and **My Lab** work, converting your code contributions into professional "STAR" bullet points.
@@ -101,7 +170,7 @@ export default function ResumeBuilder() {
                             <p className="max-w-md">Enter a job description to see your AI-generated resume here.</p>
                         </div>
                     ) : (
-                        <div className="flex-1 p-8 overflow-y-auto font-sans">
+                        <div id="resume-preview" className="flex-1 p-8 overflow-y-auto font-sans bg-white text-gray-900">
                             {/* Resume Header (Dynamic) */}
                             <div className="border-b-2 border-gray-800 pb-4 mb-6">
                                 <h1 className="text-3xl font-bold text-gray-900 uppercase tracking-wider">
@@ -126,7 +195,7 @@ export default function ResumeBuilder() {
                                         <div key={i}>
                                             <div className="flex justify-between items-baseline mb-1">
                                                 <h5 className="font-bold text-gray-900">{proj.title}</h5>
-                                                <span className="text-xs text-gray-500">Sentinel Lab</span>
+                                                <span className="text-xs text-gray-500">Ekalavya Lab</span>
                                             </div>
                                             <ul className="list-disc list-outside ml-4 space-y-1">
                                                 {proj.bullets?.map((bullet, j) => (
@@ -184,14 +253,14 @@ export default function ResumeBuilder() {
                             </div>
 
                             {/* AI Tips */}
-                            <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
+                            <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 no-print">
                                 <strong>💡 AI Tip:</strong> {resumeData.improvement_tips}
                             </div>
                         </div>
                     )}
                 </div>
-
             </div>
+            {/* Removed internal @media print style block as we handle it via iframe now */}
         </div>
     );
 }

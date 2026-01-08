@@ -48,7 +48,7 @@ class MirrorAgent:
             print(f"Error analyzing resume: {e}")
             # Fallback Profile
             return {
-                "personal_details": {"name": "Cadet X", "email": "cadet@sentinel.ai"},
+                "personal_details": {"name": "Cadet X", "email": "cadet@ekalavya.ai"},
                 "education": [],
                 "experience": [],
                 "current_skills": ["Python", "JavaScript", "Problem Solving"],

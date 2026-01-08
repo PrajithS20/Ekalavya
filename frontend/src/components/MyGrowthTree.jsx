@@ -27,7 +27,7 @@ export default function MyGrowthTree() {
         setStats({
           stage: data.stage || "Sprout",
           trees: data.trees || 0,
-          next_goal: data.next_goal || 5
+          next_goal: data.next_goal || 5 // Will now use value from backend
         });
       })
       .catch((err) => console.error("Failed to fetch growth status:", err));
@@ -43,7 +43,7 @@ export default function MyGrowthTree() {
       className="flex flex-col items-center gap-6"
     >
       <div className="relative">
-        <div className="w-[280px] h-[280px] relative rounded-full overflow-hidden shadow-glow bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-sm border border-cyan-500/30">
+        <div className="w-[280px] h-[280px] relative rounded-full overflow-hidden shadow-glow bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-sm border border-cyan-500/30 flex items-center justify-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={stage.label}

@@ -1,6 +1,6 @@
-# Sentinel (Career AI) 🌱
+# EKALAVYA (Career AI) 🌱
 
-**Sentinel** is an AI-Powered Career Acceleration Ecosystem designed to bridge the gap between learning and industry readiness. It uses a multi-agent AI system to assess skills, generate personalized portfolio projects, and verify work through simulated code reviews and vision analysis.
+**EKALAVYA** is an AI-Powered Career Acceleration Ecosystem designed to bridge the gap between learning and industry readiness. It uses a multi-agent AI system to assess skills, generate personalized portfolio projects, and verify work through simulated code reviews and vision analysis.
 
 ## 🌟 Key Features
 
@@ -16,7 +16,7 @@
 
 ### 3. 📄 Resume Architect AI (New!)
 *   **A4 Professional Template**: Automatically formats your profile into a clean, side-by-side (Gray/White) A4 resume.
-*   **Smart Content**: Uses AI to convert your Sentinel Lab projects into professional "STAR" method bullet points.
+*   **Smart Content**: Uses AI to convert your EKALAVYA Lab projects into professional "STAR" method bullet points.
 *   **Native PDF Export**: High-fidelity PDF export (using browser print) that supports multi-page resumes without breaking layout.
 
 ### 4. 🌏 Multilingual Support (New!)
@@ -61,8 +61,8 @@
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/<YOUR_USERNAME>/SENTINEL.git
-cd SENTINEL
+git clone https://github.com/<YOUR_USERNAME>/EKALAVYA.git
+cd EKALAVYA
 ```
 
 ### 2. Backend Setup
@@ -133,7 +133,7 @@ npm run dev
     *   Write code in the editor.
     *   Upload screenshots of your progress to unlock the next phase.
 5.  **Job Hub**: As you skill up, view AI-matched job opportunities (updated daily).
-6.  **Resume Architect**: Generate a professional PDF resume citing your Sentinel projects.
+6.  **Resume Architect**: Generate a professional PDF resume citing your EKALAVYA projects.
 
 ---
 

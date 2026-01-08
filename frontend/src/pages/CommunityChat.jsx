@@ -11,7 +11,8 @@ import {
   Search,
   Users,
   FileText,
-  Smile
+  Smile,
+  Trash2
 } from "lucide-react";
 import TopBar from "../components/TopBar";
 import axios from "axios";
@@ -28,6 +29,7 @@ export default function CommunityChat() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
+  const currentUser = sessionStorage.getItem("userName"); // Get logged in user name
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -97,6 +99,8 @@ export default function CommunityChat() {
     const msgToSend = newMessage;
     setNewMessage("");
 
+    // Original POST logic (restored for clarity if needed, but assuming user input handling is enough for now as logic was moved to handleDelete?)
+    // Wait, the previous edit REMOVED the POST call logic! I need to put it back!
     try {
       const token = sessionStorage.getItem("authToken");
       await axios.post("http://localhost:8000/community/messages", {
@@ -108,6 +112,23 @@ export default function CommunityChat() {
       });
     } catch (err) {
       console.error("Failed to send", err);
+    }
+  };
+
+  const handleDeleteMessage = async (msgId) => {
+    if (!confirm("Delete this message?")) return;
+    try {
+      const token = sessionStorage.getItem("authToken");
+      console.log("Deleting message:", msgId);
+      const res = await axios.delete(`http://localhost:8000/community/messages/${msgId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log("Delete response:", res);
+      // Optimistic update
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+    } catch (err) {
+      console.error("Failed to delete message:", err.response || err);
+      alert(`Failed to delete message: ${err.response?.data?.detail || err.message}`);
     }
   };
 
@@ -248,6 +269,17 @@ export default function CommunityChat() {
                       </div>
                     )}
                   </div>
+
+                  {/* Delete Button (Only for own messages) */}
+                  {(msg.user === 'You' || msg.user === currentUser) && (
+                    <button
+                      onClick={() => handleDeleteMessage(msg.id)}
+                      className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition-opacity self-center p-2"
+                      title="Delete Message"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               )))}
             <div ref={messagesEndRef} />
@@ -292,8 +324,8 @@ export default function CommunityChat() {
             </div>
           </div>
 
-        </motion.div>
-      </div>
-    </div>
+        </motion.div >
+      </div >
+    </div >
   );
 }

@@ -36,7 +36,8 @@ export default function TheFoundry() {
     // --- RESIZING STATE ---
     const [leftWidth, setLeftWidth] = useState(30); // Percentage
     const [topHeight, setTopHeight] = useState(60); // Percentage
-    const [language, setLanguage] = useState("english"); // New State
+    const [language, setLanguage] = useState("python"); // Coding Language
+    const [spokenLanguage, setSpokenLanguage] = useState("english"); // Spoken Language (English/Tamil)
 
     const containerRef = useRef(null);
     const rightPanelRef = useRef(null);
@@ -147,7 +148,8 @@ export default function TheFoundry() {
         try {
             const res = await axios.post("http://localhost:8000/foundry/validate", {
                 code: code,
-                phase_objective: activePhase?.description || "Run code"
+                phase_objective: activePhase?.description || "Run code",
+                language: language
             });
 
             const { output, review } = res.data;
@@ -182,7 +184,8 @@ export default function TheFoundry() {
                     phase_title: activePhase?.title,
                     phase_description: activePhase?.description
                 },
-                language: language // Pass language state
+                language: language, // Coding Language
+                spoken_language: spokenLanguage // Spoken Language
             });
             setMessages(prev => [...prev, { role: "system", content: res.data.response }]);
         } catch (err) {
@@ -258,13 +261,13 @@ export default function TheFoundry() {
 
                     {/* Language Toggle */}
                     <button
-                        onClick={() => setLanguage(l => l === "english" ? "tamil" : "english")}
-                        className={`text-xs px-2 py-1 rounded border transition-colors ${language === "tamil"
+                        onClick={() => setSpokenLanguage(l => l === "english" ? "tamil" : "english")}
+                        className={`text-xs px-2 py-1 rounded border transition-colors ${spokenLanguage === "tamil"
                             ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
                             : "bg-blue-500/10 text-blue-400 border-blue-500/20 hover:border-blue-400"
                             }`}
                     >
-                        {language === "tamil" ? "தமிழ் (Tamil)" : "ENG (US)"}
+                        {spokenLanguage === "tamil" ? "தமிழ் (Tamil)" : "ENG (US)"}
                     </button>
                 </div>
 
@@ -347,7 +350,22 @@ export default function TheFoundry() {
                     <div className="h-10 bg-[#0a111e] border-b border-gray-800 flex items-center justify-between px-4 shrink-0 z-10 w-full">
                         <div className="flex items-center gap-2 text-xs text-gray-400 font-mono">
                             <FileCode size={14} />
-                            <span>main.py</span>
+                            <span>main.{language === "python" ? "py" : language === "cpp" ? "cpp" : language === "c" ? "c" : language === "java" ? "java" : language === "javascript" ? "js" : "txt"}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={language}
+                                onChange={(e) => setLanguage(e.target.value)}
+                                className="bg-[#0e1623] border border-gray-700 text-gray-300 text-xs rounded px-2 py-1 outline-none focus:border-cyan-500"
+                            >
+                                <option value="python">Python</option>
+                                <option value="javascript">JavaScript</option>
+                                <option value="cpp">C++</option>
+                                <option value="c">C</option>
+                                <option value="java">Java</option>
+                                <option value="go">Go</option>
+                                <option value="rust">Rust</option>
+                            </select>
                         </div>
                         <button
                             onClick={handleShare}
@@ -385,6 +403,7 @@ export default function TheFoundry() {
                             height="100%"
                             width="100%"
                             defaultLanguage="python"
+                            language={language}
                             theme="vs-dark"
                             value={code}
                             onChange={handleEditorChange}

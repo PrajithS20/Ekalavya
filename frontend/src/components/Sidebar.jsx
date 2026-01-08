@@ -20,6 +20,7 @@ import {
   Monitor, // New for My Lab
 } from "lucide-react";
 import Galaxy from "./Galaxy";
+import { VelIcon } from "./VelIcon";
 
 const navItems = [
   { label: "Home", icon: Home, path: "/" }, // Changed from Dashboard
@@ -84,12 +85,18 @@ export default function Sidebar({ onLogout }) {
                   className="flex items-center gap-2 cursor-pointer group"
                   onClick={() => navigate("/")}
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 shadow-lg shadow-green-500/30 flex items-center justify-center">
-                    <Sparkles size={18} className="text-white" />
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-900/20">
+                    <VelIcon size={20} className="text-white" />
                   </div>
-                  <h1 className="text-white text-xl font-bold tracking-widest group-hover:text-green-400 transition-colors">
-                    SENTINEL
-                  </h1>
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                  >
+                    <h1 className="text-white text-xl font-bold tracking-widest group-hover:text-green-400 transition-colors">
+                      EKALAVYA
+                    </h1>
+                  </motion.div>
                 </motion.div>
                 <button
                   onClick={toggleSidebar}

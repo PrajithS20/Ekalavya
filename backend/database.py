@@ -863,6 +863,26 @@ def get_channel_messages(channel_name):
         })
     return messages
 
+def delete_community_message(message_id, user_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    # verify ownership
+    cursor.execute("SELECT user_id FROM community_messages WHERE id = ?", (message_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return False # Message not found
+    
+    if row[0] != user_id:
+        conn.close()
+        return False # Not authorized
+        
+    cursor.execute("DELETE FROM community_messages WHERE id = ?", (message_id,))
+    conn.commit()
+    cursor.execute("VACUUM") # Optional: clean up space
+    conn.close()
+    return True
+
 def add_community_message(user_id, channel_name, content, msg_type="text"):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -919,3 +939,10 @@ def get_user_activity(user_id):
 
 # Initialize DB
 init_db()
+
+def update_user_stage(user_id, stage):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('UPDATE profiles SET growth_stage = ? WHERE user_id = ?', (stage, user_id))
+    conn.commit()
+    conn.close()

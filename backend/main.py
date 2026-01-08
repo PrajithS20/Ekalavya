@@ -95,21 +95,23 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 class FoundryChatRequest(BaseModel):
     message: str
     code: str
-    project_context: dict 
-    language: str = "english"
+    project_context: dict
+    language: str = "english" # Coding Language
+    spoken_language: str = "english" # Response Language
 
 class FoundryValidateRequest(BaseModel):
     code: str
     phase_objective: str
+    language: str = "english"
 
 @app.post("/foundry/chat")
-async def foundry_chat(req: FoundryChatRequest):
-    response = foundry.chat_architect(req.message, req.code, req.project_context, req.language)
+def chat_foundry(req: FoundryChatRequest):
+    response = foundry.chat_architect(req.message, req.code, req.project_context, req.language, req.spoken_language)
     return {"response": response}
 
 @app.post("/foundry/validate")
 async def foundry_validate(req: FoundryValidateRequest):
-    result = foundry.validate_code(req.code, req.phase_objective)
+    result = foundry.validate_code(req.code, req.phase_objective, req.language)
     return result
 
 import base64
@@ -550,21 +552,29 @@ def get_growth_status(user: dict = Depends(get_current_user)):
         {"name": "Gaia's Legacy", "min": 50, "max": 999}
     ]
     
-    current_tier = next((t for t in tiers if t['name'] == profile['growth_stage']), tiers[0])
+    current_tier = next((t for t in tiers if t['min'] <= trees_count <= t['max']), tiers[-1])
+    
+    # Check if we should update the DB profile if the stage has changed (Self-healing)
+    if profile.get('growth_stage') != current_tier['name']:
+         database.update_user_stage(user['id'], current_tier['name'])
+
     next_tier = next((t for t in tiers if t['min'] > current_tier['max']), None)
     
     progress = 0
     if next_tier:
-        total_needed = next_tier['min']
-        progress = int((trees_count / total_needed) * 100)
+        # Progress within current tier
+        range_span = current_tier['max'] - current_tier['min'] + 1
+        current_val = trees_count - current_tier['min']
+        progress = int((current_val / range_span) * 100)
     else:
         progress = 100
         
     return {
-        "stage": profile['growth_stage'],
+        "stage": current_tier['name'], # Use calculated tier, not potentially stale DB value
         "trees": trees_count,
         "progress": progress,
-        "next_stage": next_tier['name'] if next_tier else "Max Level"
+        "next_stage": next_tier['name'] if next_tier else "Max Level",
+        "next_goal": next_tier['min'] if next_tier else trees_count # Return max if no next tier
     }
 
 # --- PROFILE API ---
@@ -713,10 +723,27 @@ def get_messages(channel_name: str, auth_user=Depends(get_current_user)):
 
 @app.post("/community/messages")
 def post_message(req: ChatMessageRequest, auth_user=Depends(get_current_user)):
+    # Profanity Filter
+    # Extended list including user reported word and common variations
+    BAD_WORDS = ["idiot", "stupid", "dumb", "hate", "kill", "die", "badword", "trash", "useless", "fuck", "shit", "bitch", "asshole"]
+    content_lower = req.content.lower().split() # Split into words to avoid substring matching issues like "hello there" matching "hell" if hell was banned
+    
+    # Check for substring match in strict list or exact word match
+    for word in BAD_WORDS:
+        if word in req.content.lower(): # Simple substring check is safer for "f*ck" etc but can be aggressive. User wanted security.
+             raise HTTPException(status_code=400, detail="Message contains inappropriate language.")
+
     success = database.add_community_message(auth_user['id'], req.channel, req.content, req.type)
     if not success:
         raise HTTPException(status_code=400, detail="Invalid channel")
     return {"status": "sent"}
+
+@app.delete("/community/messages/{message_id}")
+def delete_message(message_id: int, auth_user=Depends(get_current_user)):
+    success = database.delete_community_message(message_id, auth_user['id'])
+    if not success:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this message or message not found.")
+    return {"status": "deleted"}
 
 # --- End Community Chat Endpoints ---
 

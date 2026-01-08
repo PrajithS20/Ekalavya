@@ -11,6 +11,7 @@ import {
   Sparkles
 } from "lucide-react";
 import Galaxy from "../components/Galaxy";
+import { VelIcon } from "../components/VelIcon";
 
 export default function LoginSignup({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -54,7 +55,15 @@ export default function LoginSignup({ onLogin }) {
           sessionStorage.setItem("userEmail", data.email);
 
           if (onLogin) onLogin();
-          else navigate("/");
+          // We can't navigate here if onLogin causes a re-render of App that mounts Router,
+          // but App.js handles the switch. However, we want to go to /onboarding.
+          // Since onLogin sets isAuthenticated=true, App will mount the protected routes.
+          // But by default it might go to "/" or whatever URL is current.
+          // We should ideally navigate but 'navigate' might not work if Router context changes.
+          // Actually, App.jsx controls the routing. 
+          // Let's rely on window.location or assume App renders /onboarding by default?
+          // Better: navigate to /onboarding if possible.
+          navigate("/onboarding");
         }
       } else {
         // Signup logic
@@ -123,16 +132,14 @@ export default function LoginSignup({ onLogin }) {
             className="text-center mb-8"
           >
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
               className="inline-block mb-4"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
-                <Sparkles size={32} className="text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg">
+                <VelIcon size={32} className="text-white" />
               </div>
             </motion.div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
-              Career AI
+              EKALAVYA
             </h1>
             <p className="text-gray-600 text-sm">Grow your career with nature's wisdom</p>
           </motion.div>

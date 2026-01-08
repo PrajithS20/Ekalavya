@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Leaf, TreePine, Flower, Sun, Cloud, Bird } from "lucide-react";
+import { VelIcon } from "../components/VelIcon";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -165,9 +166,9 @@ export default function AuthPage() {
             className="text-center mb-8"
           >
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full mb-4 shadow-lg">
-              <TreePine size={32} className="text-white" />
+              <VelIcon size={32} className="text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Sentinel</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">EKALAVYA</h1>
             <p className="text-gray-600">Grow Your Career Naturally</p>
           </motion.div>
 

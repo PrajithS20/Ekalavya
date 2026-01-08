@@ -19,6 +19,25 @@ import Profile from "./pages/Profile";
 import CommunityChat from "./pages/CommunityChat";
 import Galaxy from "./components/Galaxy";
 
+import RoleSelection from "./pages/RoleSelection";
+import BusinessLayout from "./layouts/BusinessLayout";
+import BusinessDashboard from "./pages/business/BusinessDashboard";
+import StartupIncubator from "./pages/business/StartupIncubator";
+import Boardroom from "./pages/business/Boardroom";
+import GlobalMarkets from "./pages/business/GlobalMarkets";
+import GrowthEngine from "./pages/business/GrowthEngine";
+import BusinessNetwork from "./pages/business/BusinessNetwork";
+
+import SportsLayout from "./layouts/SportsLayout";
+import SportsDashboard from "./pages/sports/SportsDashboard";
+import SportsCareerGuidance from "./pages/sports/SportsCareerGuidance";
+import TrainingLog from "./pages/sports/TrainingLog";
+import TeamChat from "./pages/sports/TeamChat";
+import MyStats from "./pages/sports/MyStats";
+import Nutrition from "./pages/sports/Nutrition";
+import Venues from "./pages/sports/Venues";
+import Scouting from "./pages/sports/Scouting";
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return sessionStorage.getItem("authToken") !== null;
@@ -87,27 +106,59 @@ export default function App() {
           </div>
 
           <div className="relative z-10 flex h-full w-full">
-            <Sidebar onLogout={handleLogout} />
-            <div className="flex-1 overflow-y-auto relative">
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/project-lab" element={<ProjectLab />} />
-                <Route path="/community" element={<CommunityChat />} />
-                <Route path="/my-lab" element={<MyWorkspaceOverview />} />
-                <Route path="/collaborate" element={<GroupSession />} />
-                <Route path="/career-guidance" element={<CareerGuidance />} />
-                <Route path="/upload-resume" element={<UploadResume />} />
-                <Route path="/resume-builder" element={<ResumeBuilder />} />
-                <Route path="/resume-builder" element={<ResumeBuilder />} />
+            <Routes>
+              {/* Onboarding Route - No Sidebar */}
+              <Route path="/onboarding" element={<RoleSelection />} />
 
-                <Route path="/offline-atlas" element={<OfflineAtlas />} />
-                <Route path="/job-hub" element={<JobHub />} />
-                <Route path="/project/:projectId" element={<ProjectPhases />} />
-                <Route path="/project/:projectId/foundry" element={<TheFoundry />} />
-                <Route path="/workspace/:projectId" element={<MyWorkspace />} />
-                <Route path="/profile" element={<Profile />} />
-              </Routes>
-            </div>
+              {/* Business Path Routes */}
+              <Route path="/business" element={<BusinessLayout />}>
+                <Route index element={<BusinessDashboard />} />
+                <Route path="incubator" element={<StartupIncubator />} />
+                <Route path="network" element={<BusinessNetwork />} />
+                <Route path="boardroom" element={<Boardroom />} />
+                <Route path="markets" element={<GlobalMarkets />} />
+                <Route path="growth" element={<GrowthEngine />} />
+              </Route>
+
+              {/* Sports Path Routes */}
+              <Route path="/sports" element={<SportsLayout />}>
+                <Route index element={<SportsDashboard />} />
+                <Route path="guidance" element={<SportsCareerGuidance />} />
+                <Route path="training" element={<TrainingLog />} />
+                <Route path="chat" element={<TeamChat />} />
+                <Route path="stats" element={<MyStats />} />
+                <Route path="nutrition" element={<Nutrition />} />
+                <Route path="venues" element={<Venues />} />
+                <Route path="scouting" element={<Scouting />} />
+              </Route>
+
+              {/* Main App Routes - With Sidebar */}
+              <Route path="*" element={
+                <div className="flex h-full w-full">
+                  <Sidebar onLogout={handleLogout} />
+                  <div className="flex-1 overflow-y-auto relative">
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/project-lab" element={<ProjectLab />} />
+                      <Route path="/community" element={<CommunityChat />} />
+                      <Route path="/my-lab" element={<MyWorkspaceOverview />} />
+                      <Route path="/collaborate" element={<GroupSession />} />
+                      <Route path="/career-guidance" element={<CareerGuidance />} />
+                      <Route path="/upload-resume" element={<UploadResume />} />
+                      <Route path="/resume-builder" element={<ResumeBuilder />} />
+                      <Route path="/resume-builder" element={<ResumeBuilder />} />
+
+                      <Route path="/offline-atlas" element={<OfflineAtlas />} />
+                      <Route path="/job-hub" element={<JobHub />} />
+                      <Route path="/project/:projectId" element={<ProjectPhases />} />
+                      <Route path="/project/:projectId/foundry" element={<TheFoundry />} />
+                      <Route path="/workspace/:projectId" element={<MyWorkspace />} />
+                      <Route path="/profile" element={<Profile />} />
+                    </Routes>
+                  </div>
+                </div>
+              } />
+            </Routes>
           </div>
         </div>
       )}

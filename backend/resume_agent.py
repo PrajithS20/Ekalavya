@@ -9,7 +9,7 @@ class ResumeAgent:
     def generate_resume_content(self, current_profile, completed_projects, target_job_description):
         """
         Generates tailored resume sections (Summary, Experience, Projects) 
-        based on the user's Sentinel history and the target job.
+        based on the user's EKALAVYA history and the target job.
         """
         
         # Format projects for the AI
@@ -32,7 +32,7 @@ class ResumeAgent:
         - Education: {current_profile.get('analysis', {}).get('education', [])}
         - Experience: {current_profile.get('analysis', {}).get('experience', [])}
         
-        ACHIEVEMENTS (From Sentinel Lab):
+        ACHIEVEMENTS (From EKALAVYA Lab):
         {project_context}
         
         TASK:
