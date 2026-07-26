@@ -492,7 +492,7 @@ const MagicBento = ({
                   <h2 className="magic-bento-card__title">{card.title}</h2>
                   <p className="magic-bento-card__description">{card.description}</p>
                    {/* Add Explore link if needed */}
-                   <div className="mt-4 flex items-center text-cyan-400 text-sm font-medium">
+                   <div className="mt-4 flex items-center text-[#fbc05c] text-sm font-medium">
                     Explore <span className="ml-1">→</span>
                    </div>
                 </div>

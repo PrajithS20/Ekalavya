@@ -2,39 +2,62 @@ import { motion } from "framer-motion";
 import { ArrowLeft, CheckCircle, Lock, Play, Code, Database, Globe, Rocket, Terminal } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { useMCP } from "../context/MCPProvider";
+import { useProgressStore } from "../store/useProgressStore";
 
 export default function ProjectPhases() {
     const { projectId } = useParams();
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { client, isConnected } = useMCP();
+    const activeProjects = useProgressStore(state => state.activeProjects);
 
     useEffect(() => {
-        // Determine if we are viewing a specific active project
-        // If projectId starts with "proj_", fetch from /project/:id
-        // otherwise fallback or error
-        if (projectId) {
-            axios.get(`http://localhost:8000/project/${projectId}`)
-                .then(res => {
-                    setProject(res.data);
-                    setLoading(false);
-                })
-                .catch(err => {
-                    console.error("Failed to load project", err);
-                    setLoading(false);
-                });
+        if (projectId && isConnected && client) {
+            client.callTool({
+                name: "foundry_get_project",
+                arguments: { projectId }
+            })
+            .then(res => {
+                if (res.content[0].text) {
+                    const data = JSON.parse(res.content[0].text);
+                    if (!data.error) {
+                        setProject(data);
+                    } else {
+                        const localP = activeProjects.find(p => String(p.id) === String(projectId));
+                        if(localP) setProject(localP);
+                    }
+                }
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Failed to load project", err);
+                const localP = activeProjects.find(p => String(p.id) === String(projectId));
+                if(localP) setProject(localP);
+                setLoading(false);
+            });
+        } else if (!isConnected) {
+            // Wait for connection
         }
-    }, [projectId]);
+    }, [projectId, isConnected, client, activeProjects]);
 
     const handleUnlockPhase = async (phaseId) => {
+        if (!client) return;
         try {
-            await axios.post("http://localhost:8000/project/unlock-phase", {
-                project_id: projectId,
-                phase_id: phaseId
+            await client.callTool({
+                name: "foundry_unlock_phase",
+                arguments: { projectId, phaseId }
             });
+            
             // Refresh project state
-            const res = await axios.get(`http://localhost:8000/project/${projectId}`);
-            setProject(res.data);
+            const res = await client.callTool({
+                name: "foundry_get_project",
+                arguments: { projectId }
+            });
+            const data = JSON.parse(res.content[0].text);
+            if (!data.error) {
+                setProject(data);
+            }
         } catch (err) {
             console.error("Failed to unlock phase", err);
         }
@@ -62,14 +85,14 @@ export default function ProjectPhases() {
                     className="mb-10"
                 >
                     <div className="flex items-start gap-6">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-3xl shadow-lg shadow-blue-500/20">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#fbc05c] to-[#fbc05c] flex items-center justify-center text-3xl shadow-lg shadow-[#fbc05c]/20">
                             🚀
                         </div>
                         <div>
                             <h1 className="text-3xl font-bold text-white mb-2">{project.title}</h1>
                             <p className="text-gray-400 max-w-2xl">{project.description}</p>
                             <div className="mt-4 flex gap-2">
-                                <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs text-blue-400">
+                                <span className="px-3 py-1 bg-[#fbc05c]/10 border border-[#fbc05c]/20 rounded-full text-xs text-[#fbc05c]">
                                     {project.tech_stack}
                                 </span>
                                 <span className="px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-xs text-green-400">
@@ -96,16 +119,16 @@ export default function ProjectPhases() {
                                 className={`
                             relative p-6 rounded-2xl border transition-all duration-300
                             ${isLocked
-                                        ? "bg-slate-900/50 border-slate-800 opacity-60 grayscale"
+                                        ? "bg-[#0a0a0a]/50 border-slate-800 opacity-60 grayscale"
                                         : isCurrent
-                                            ? "bg-gradient-to-br from-blue-900/20 to-slate-900 border-blue-500/50 shadow-lg shadow-blue-500/10 ring-1 ring-blue-500/20"
-                                            : "bg-slate-800/30 border-green-500/30"}
+                                            ? "bg-gradient-to-br from-[#fbc05c]/20 to-[#0a0a0a] border-[#fbc05c]/50 shadow-lg shadow-[#fbc05c]/10 ring-1 ring-[#fbc05c]/20"
+                                            : "bg-[#111111]/30 border-green-500/30"}
                         `}
                             >
                                 <div className="flex justify-between items-start mb-4">
                                     <div className={`
                                 w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold
-                                ${isCompleted ? "bg-green-500/20 text-green-400" : isCurrent ? "bg-blue-500/20 text-blue-400" : "bg-slate-700 text-slate-500"}
+                                ${isCompleted ? "bg-green-500/20 text-green-400" : isCurrent ? "bg-[#fbc05c]/20 text-[#fbc05c]" : "bg-slate-700 text-slate-500"}
                             `}>
                                         {isCompleted ? <CheckCircle size={20} /> : isLocked ? <Lock size={20} /> : phase.id}
                                     </div>
@@ -122,9 +145,9 @@ export default function ProjectPhases() {
                                 </p>
 
                                 <div className="space-y-3 mb-6">
-                                    {phase.tasks.slice(0, 3).map((task, i) => (
+                                    {(phase.tasks || []).slice(0, 3).map((task, i) => (
                                         <div key={i} className="flex items-center gap-2 text-sm text-gray-500">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${isLocked ? "bg-slate-700" : "bg-blue-500/50"}`} />
+                                            <div className={`w-1.5 h-1.5 rounded-full ${isLocked ? "bg-slate-700" : "bg-[#fbc05c]/50"}`} />
                                             <span className={isLocked ? "line-through opacity-50" : ""}>{task}</span>
                                         </div>
                                     ))}
@@ -133,7 +156,7 @@ export default function ProjectPhases() {
                                 {isCurrent && (
                                     <Link
                                         to={`/project/${projectId}/foundry`}
-                                        className="w-full py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-900/20 text-sm font-bold"
+                                        className="w-full py-2 bg-gradient-to-r from-[#fbc05c] to-[#fbc05c] hover:from-[#fbc05c] hover:to-[#fbc05c] text-white rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-900/20 text-sm font-bold"
                                     >
                                         <Code size={16} />
                                         Enter The Foundry
@@ -146,7 +169,7 @@ export default function ProjectPhases() {
                                     </div>
                                 )}
                                 {isLocked && (
-                                    <button disabled className="w-full py-2 bg-slate-800 text-slate-500 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed text-sm">
+                                    <button disabled className="w-full py-2 bg-[#111111] text-slate-500 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed text-sm">
                                         <Lock size={16} />
                                         Locked
                                     </button>

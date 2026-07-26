@@ -58,7 +58,7 @@ export default function ActivityHeatmap({ data }) {
             initial={{ opacity: 0, y: 10, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5, scale: 0.9 }}
-            className="absolute z-50 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg border border-white/10 shadow-xl whitespace-nowrap pointer-events-none"
+            className="absolute z-50 bg-[#0a0a0a] text-white text-xs px-3 py-2 rounded-lg border border-white/10 shadow-xl whitespace-nowrap pointer-events-none"
             style={{
               top: hoveredDay.y - 45,
               left: hoveredDay.x - 70 // Adjust centering

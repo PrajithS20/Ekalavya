@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Briefcase, MapPin, DollarSign, Clock, Star, Users, TrendingUp, Calendar, Target, Award, ExternalLink } from "lucide-react";
 import TopBar from "../components/TopBar";
 import { ParticleCard } from "../components/MagicBento";
+import { useMCP } from "../context/MCPProvider";
 
 // Keep static mock data for Interviews/Offers/Stats for UI completeness (as requested only Job Matches to be scraped)
 const upcomingInterviews = [
@@ -41,13 +42,16 @@ export default function JobHub() {
   const [jobMatches, setJobMatches] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const { client, isConnected } = useMCP();
+
   useEffect(() => {
-    const token = sessionStorage.getItem("authToken");
-    fetch("http://localhost:8000/job-matches", {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
+    if (isConnected && client) {
+      client.callTool({
+        name: "market_find_job_matches",
+        arguments: { userId: 1, role: "Software Engineer", skills: ["React"] } // Dummy arguments for now
+      })
+      .then(res => {
+        const data = JSON.parse(res.content[0].text);
         setJobMatches(data.jobs || []);
         setLoading(false);
       })
@@ -55,7 +59,8 @@ export default function JobHub() {
         console.error("Failed to fetch jobs", err);
         setLoading(false);
       });
-  }, []);
+    }
+  }, [isConnected, client]);
 
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
@@ -88,29 +93,29 @@ export default function JobHub() {
               <div className="text-2xl font-bold text-white">{jobMatches.length}</div>
               <div className="text-xs text-green-400">Personalized</div>
             </div>
-            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-sm rounded-lg p-4 border border-blue-500/20">
+            <div className="bg-gradient-to-br from-[#fbc05c]/10 to-[#fbc05c]/10 backdrop-blur-sm rounded-lg p-4 border border-[#fbc05c]/20">
               <div className="flex items-center gap-2 mb-2">
-                <Calendar size={20} className="text-blue-400" />
+                <Calendar size={20} className="text-[#fbc05c]" />
                 <span className="text-sm text-gray-400">Interviews</span>
               </div>
               <div className="text-2xl font-bold text-white">2</div>
-              <div className="text-xs text-blue-400">Scheduled</div>
+              <div className="text-xs text-[#fbc05c]">Scheduled</div>
             </div>
-            <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm rounded-lg p-4 border border-purple-500/20">
+            <div className="bg-gradient-to-br from-[#fbc05c]/10 to-[#fbc05c]/10 backdrop-blur-sm rounded-lg p-4 border border-[#fbc05c]/20">
               <div className="flex items-center gap-2 mb-2">
-                <Award size={20} className="text-purple-400" />
+                <Award size={20} className="text-[#fbc05c]" />
                 <span className="text-sm text-gray-400">Offers</span>
               </div>
               <div className="text-2xl font-bold text-white">1</div>
-              <div className="text-xs text-purple-400">Pending review</div>
+              <div className="text-xs text-[#fbc05c]">Pending review</div>
             </div>
-            <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 backdrop-blur-sm rounded-lg p-4 border border-orange-500/20">
+            <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 backdrop-blur-sm rounded-lg p-4 border border-[#fbc05c]/20">
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp size={20} className="text-orange-400" />
+                <TrendingUp size={20} className="text-[#fbc05c]" />
                 <span className="text-sm text-gray-400">Profile Views</span>
               </div>
               <div className="text-2xl font-bold text-white">156</div>
-              <div className="text-xs text-orange-400">↑ 23% this month</div>
+              <div className="text-xs text-[#fbc05c]">↑ 23% this month</div>
             </div>
           </motion.div>
 
@@ -121,7 +126,7 @@ export default function JobHub() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 mb-6"
+                className="bg-gradient-to-br from-slate-800/50 to-[#0a0a0a]/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 mb-6"
               >
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center">
@@ -150,7 +155,7 @@ export default function JobHub() {
                           transition={{ delay: 0.1 * index }}
                         >
                           <ParticleCard
-                            className="bg-gradient-to-r from-slate-800/40 to-slate-900/40 rounded-xl p-6 border border-slate-700/50 hover:border-green-500/50 transition-all duration-300 group cursor-pointer relative"
+                            className="bg-gradient-to-r from-slate-800/40 to-[#0a0a0a]/40 rounded-xl p-6 border border-slate-700/50 hover:border-green-500/50 transition-all duration-300 group cursor-pointer relative"
                             glowColor="34, 197, 94"
                           >
                             <div className="absolute top-4 right-4 text-gray-600 group-hover:text-green-400 transition-colors z-[101]">
@@ -170,7 +175,7 @@ export default function JobHub() {
                               <div className="text-right">
                                 <div className={`text-sm font-bold px-2 py-1 rounded ${job.match_score >= 90 ? 'bg-green-500/20 text-green-400' :
                                   job.match_score >= 80 ? 'bg-yellow-500/20 text-yellow-400' :
-                                    'bg-orange-500/20 text-orange-400'
+                                    'bg-[#fbc05c]/20 text-[#fbc05c]'
                                   }`}>
                                   {job.match_score}% Match
                                 </div>
@@ -228,10 +233,10 @@ export default function JobHub() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50"
+                className="bg-gradient-to-br from-slate-800/50 to-[#0a0a0a]/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#fbc05c] to-[#fbc05c] flex items-center justify-center">
                     <Calendar size={16} className="text-white" />
                   </div>
                   <h3 className="text-lg font-bold text-white">Upcoming Interviews</h3>
@@ -263,10 +268,10 @@ export default function JobHub() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50"
+                className="bg-gradient-to-br from-slate-800/50 to-[#0a0a0a]/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500 to-pink-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#fbc05c] to-[#fbc05c] flex items-center justify-center">
                     <Award size={16} className="text-white" />
                   </div>
                   <h3 className="text-lg font-bold text-white">Job Offers</h3>
@@ -289,7 +294,7 @@ export default function JobHub() {
                           </div>
                         ))}
                       </div>
-                      <div className="text-xs text-orange-400">Respond by {offer.deadline}</div>
+                      <div className="text-xs text-[#fbc05c]">Respond by {offer.deadline}</div>
                     </div>
                   ))}
                 </div>

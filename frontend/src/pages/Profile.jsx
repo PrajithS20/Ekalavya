@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { User, Mail, MapPin, Calendar, Award, BookOpen, Star, Shield, Edit, Camera, Check } from "lucide-react";
 import TopBar from "../components/TopBar";
 import ActivityHeatmap from "../components/ActivityHeatmap";
-import axios from "axios";
+import { useMCP } from "../context/MCPProvider";
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
@@ -11,33 +11,36 @@ export default function Profile() {
   const [goals, setGoals] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef(null);
+  const { client, isConnected } = useMCP();
 
   // Real activity data for heatmap
   const [activityData, setActivityData] = useState([]);
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (client && isConnected) {
+      fetchProfile();
+    }
+  }, [client, isConnected]);
 
   const fetchProfile = async () => {
-    const token = sessionStorage.getItem("authToken");
-    if (!token) {
+    if (!client) {
       setLoading(false);
-      // navigate("/login");
       return;
     }
     try {
-      const res = await axios.get("http://localhost:8000/profile", {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await client.callTool({
+        name: "market_get_profile",
+        arguments: { userId: 1 } // Hardcoded for now, same as backend
       });
-      if (res.data.error) {
+      const data = JSON.parse(res.content[0].text);
+      if (data.error) {
         setLoading(false);
         return;
       }
 
-      setProfileData(res.data);
-      setGoals(res.data.goals || []);
-      setActivityData(res.data.activity || []);
+      setProfileData(data);
+      setGoals(data.goals || []);
+      setActivityData(data.activity || []);
 
       setLoading(false);
     } catch (err) {
@@ -48,11 +51,16 @@ export default function Profile() {
 
   const toggleGoal = async (goal) => {
     // Optimistic UI
-    const updatedGoals = goals.map(g => g.id === goal.id ? { ...g, is_done: !g.is_done } : g);
+    const updatedGoals = goals.map(g => g.id === goal.id ? { ...g, is_done: !g.isDone } : g);
     setGoals(updatedGoals);
 
+    if (!client) return;
+
     try {
-      await axios.put(`http://localhost:8000/profile/goals/${goal.id}`, { is_done: !goal.is_done });
+      await client.callTool({
+        name: "market_update_goal",
+        arguments: { goalId: goal.id, is_done: !goal.isDone }
+      });
     } catch (e) {
       console.error("Failed to update goal");
       // Revert
@@ -73,17 +81,19 @@ export default function Profile() {
     }
 
     const updates = {
+      userId: 1, // hardcoded for prototype
       full_name: formData.get("full_name"),
       bio: formData.get("bio"),
       location: formData.get("location"),
-      email: email,
       avatar: profileData?.avatar // Preserve existing avatar
     };
 
+    if (!client) return;
+
     try {
-      const token = sessionStorage.getItem("authToken");
-      await axios.post("http://localhost:8000/profile/update", updates, {
-        headers: { Authorization: `Bearer ${token}` }
+      await client.callTool({
+        name: "market_update_profile",
+        arguments: updates
       });
       setIsEditing(false);
       fetchProfile(); // Refresh
@@ -105,17 +115,19 @@ export default function Profile() {
       const base64String = reader.result;
       setProfileData(prev => ({ ...prev, avatar: base64String }));
 
+      if (!client) return;
+
       try {
-        const token = sessionStorage.getItem("authToken");
         const updates = {
-          full_name: profileData.full_name || "",
+          userId: 1,
+          full_name: profileData.fullName || "",
           bio: profileData.bio || "",
           location: profileData.location || "",
-          email: profileData.email || "",
           avatar: base64String
         };
-        await axios.post("http://localhost:8000/profile/update", updates, {
-          headers: { Authorization: `Bearer ${token}` }
+        await client.callTool({
+          name: "market_update_profile",
+          arguments: updates
         });
       } catch (err) {
         console.error("Failed to upload avatar");
@@ -158,8 +170,8 @@ export default function Profile() {
   const stats = [
     { label: "Projects Active", value: profileData?.active_projects_count ?? profileData?.projects?.length ?? "0", icon: Star, color: "text-yellow-400", bg: "bg-yellow-400/10" },
     { label: "Trees Grown", value: profileData?.trees_planted ?? "0", icon: Shield, color: "text-emerald-400", bg: "bg-emerald-400/10" },
-    { label: "Growth Stage", value: profileData?.growth_stage || "Seed", icon: BookOpen, color: "text-blue-400", bg: "bg-blue-400/10" },
-    { label: "Goals Completed", value: goals.filter(g => g.is_done).length, icon: Award, color: "text-purple-400", bg: "bg-purple-400/10" }
+    { label: "Growth Stage", value: profileData?.growth_stage || "Seed", icon: BookOpen, color: "text-[#fbc05c]", bg: "bg-[#fbc05c]/10" },
+    { label: "Goals Completed", value: goals.filter(g => g.is_done).length, icon: Award, color: "text-[#fbc05c]", bg: "bg-[#fbc05c]/10" }
   ];
 
   if (loading) return <div className="p-10 text-white">Loading Profile...</div>;
@@ -175,15 +187,15 @@ export default function Profile() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-3xl bg-slate-900/50 border border-white/10 p-8 backdrop-blur-xl"
+            className="relative overflow-hidden rounded-3xl bg-[#0a0a0a]/50 border border-white/10 p-8 backdrop-blur-xl"
           >
             {/* Background Gradient */}
-            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 blur-3xl" />
+            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-[#fbc05c]/20 via-[#fbc05c]/20 to-[#fbc05c]/20 blur-3xl" />
 
             <div className="relative flex flex-col md:flex-row items-center gap-8">
               {/* Avatar */}
               <div className="relative group">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center border-4 border-slate-800 shadow-xl relative z-10 overflow-hidden">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-gray-700 to-[#0a0a0a] flex items-center justify-center border-4 border-slate-800 shadow-xl relative z-10 overflow-hidden">
                   {user.avatar ? (
                     <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
@@ -192,7 +204,7 @@ export default function Profile() {
                 </div>
                 <button
                   onClick={handleAvatarClick}
-                  className="absolute bottom-0 right-0 p-2 bg-cyan-500 rounded-full text-white shadow-lg z-20 hover:bg-cyan-400 transition-colors cursor-pointer"
+                  className="absolute bottom-0 right-0 p-2 bg-[#fbc05c] rounded-full text-white shadow-lg z-20 hover:bg-[#fbc05c] transition-colors cursor-pointer"
                 >
                   <Camera size={16} />
                 </button>
@@ -210,7 +222,7 @@ export default function Profile() {
                 <div className="flex flex-col md:flex-row items-center md:justify-between gap-4">
                   <div>
                     <h1 className="text-3xl font-bold text-white mb-1">{user.name}</h1>
-                    <p className="text-cyan-400 font-medium">{user.role}</p>
+                    <p className="text-[#fbc05c] font-medium">{user.role}</p>
                     <p className="text-gray-400 text-sm mt-1">{user.bio}</p>
                   </div>
                   <button
@@ -248,7 +260,7 @@ export default function Profile() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 + 0.2 }}
-                className="bg-slate-900/50 border border-white/10 p-6 rounded-2xl backdrop-blur-sm"
+                className="bg-[#0a0a0a]/50 border border-white/10 p-6 rounded-2xl backdrop-blur-sm"
               >
                 <div className={`w-12 h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4`}>
                   <stat.icon size={24} />
@@ -265,7 +277,7 @@ export default function Profile() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4 }}
-              className="md:col-span-2 bg-slate-900/50 border border-white/10 rounded-3xl p-6 min-h-[280px] flex flex-col backdrop-blur-sm"
+              className="md:col-span-2 bg-[#0a0a0a]/50 border border-white/10 rounded-3xl p-6 min-h-[280px] flex flex-col backdrop-blur-sm"
             >
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-xl font-bold text-white">Time Spent Learning</h3>
@@ -282,7 +294,7 @@ export default function Profile() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5 }}
-              className="bg-slate-900/50 border border-white/10 rounded-3xl p-6 h-full min-h-[280px] backdrop-blur-sm flex flex-col"
+              className="bg-[#0a0a0a]/50 border border-white/10 rounded-3xl p-6 h-full min-h-[280px] backdrop-blur-sm flex flex-col"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-white">Current Goals</h3>
@@ -297,13 +309,13 @@ export default function Profile() {
                     onClick={() => toggleGoal(goal)}
                     className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 group hover:border-white/10 transition-colors cursor-pointer select-none"
                   >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${goal.is_done ? 'border-cyan-500 bg-cyan-500' : 'border-gray-600 group-hover:border-cyan-500/50'}`}>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${goal.is_done ? 'border-[#fbc05c] bg-[#fbc05c]' : 'border-gray-600 group-hover:border-[#fbc05c]/50'}`}>
                       {goal.is_done && <Check size={12} className="text-black font-bold" />}
                     </div>
                     <div className="flex-1">
                       <p className={`text-sm font-medium ${goal.is_done ? 'text-gray-500 line-through' : 'text-gray-200'} transition-colors`}>{goal.text}</p>
                     </div>
-                    <span className={`text-[10px] px-2 py-1 rounded-md font-medium ${goal.color || "text-gray-400 bg-gray-800"}`}>{goal.tag}</span>
+                    <span className={`text-[10px] px-2 py-1 rounded-md font-medium ${goal.color || "text-gray-400 bg-[#111111]"}`}>{goal.tag}</span>
                   </div>
                 ))}
               </div>
@@ -321,23 +333,23 @@ export default function Profile() {
             <form onSubmit={handleSaveProfile} className="space-y-4">
               <div>
                 <label className="text-xs text-gray-400 block mb-1">Full Name</label>
-                <input name="full_name" defaultValue={user?.name || ""} className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm focus:border-cyan-500 outline-none" />
+                <input name="full_name" defaultValue={user?.name || ""} className="w-full bg-[#111111] border border-gray-700 rounded p-2 text-white text-sm focus:border-[#fbc05c] outline-none" />
               </div>
               <div>
                 <label className="text-xs text-gray-400 block mb-1">Bio</label>
-                <input name="bio" defaultValue={user?.bio || ""} className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm focus:border-cyan-500 outline-none" />
+                <input name="bio" defaultValue={user?.bio || ""} className="w-full bg-[#111111] border border-gray-700 rounded p-2 text-white text-sm focus:border-[#fbc05c] outline-none" />
               </div>
               <div>
                 <label className="text-xs text-gray-400 block mb-1">Email</label>
-                <input name="email" defaultValue={user?.email || ""} className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm focus:border-cyan-500 outline-none" />
+                <input name="email" defaultValue={user?.email || ""} className="w-full bg-[#111111] border border-gray-700 rounded p-2 text-white text-sm focus:border-[#fbc05c] outline-none" />
               </div>
               <div>
                 <label className="text-xs text-gray-400 block mb-1">Location</label>
-                <input name="location" defaultValue={user?.location || ""} className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm focus:border-cyan-500 outline-none" />
+                <input name="location" defaultValue={user?.location || ""} className="w-full bg-[#111111] border border-gray-700 rounded p-2 text-white text-sm focus:border-[#fbc05c] outline-none" />
               </div>
               <div className="flex justify-end gap-2 mt-6">
                 <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-sm font-bold transition-colors">Save Changes</button>
+                <button type="submit" className="px-4 py-2 bg-[#fbc05c] hover:bg-[#fbc05c] text-white rounded text-sm font-bold transition-colors">Save Changes</button>
               </div>
             </form>
           </div>

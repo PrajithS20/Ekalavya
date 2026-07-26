@@ -6,13 +6,18 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { useProgressStore } from "../store/useProgressStore";
-
+import { useMCP } from "../context/MCPProvider";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 export default function CareerGuidance() {
     const navigate = useNavigate();
+    const { client, isConnected } = useMCP();
     // Safe access to store
     const store = useProgressStore();
     const setProfile = store.setProfile || (() => { });
     const setProjects = store.setProjects || (() => { });
+    const profile = store.currentProfile;
+    const generatedProjects = store.generatedProjects;
 
     // --- Resume Upload State ---
     const [file, setFile] = useState(null);
@@ -39,22 +44,25 @@ export default function CareerGuidance() {
     const [showHistory, setShowHistory] = useState(false);
 
     useEffect(() => {
-        // Load session if exists
-        if (sessionId) {
-            loadChatHistory(sessionId);
-        } else {
-            createNewSession();
+        if (client && isConnected) {
+            if (sessionId) {
+                loadChatHistory(sessionId);
+            } else {
+                createNewSession();
+            }
+            loadAllSessions();
         }
-        loadAllSessions();
-    }, [sessionId]);
+    }, [sessionId, client, isConnected]);
 
     const createNewSession = async () => {
+        if (!client) return;
         try {
-            const token = sessionStorage.getItem("authToken"); // Get Token
-            const res = await axios.post("http://localhost:8000/chat/new", {}, {
-                headers: { Authorization: `Bearer ${token}` }
+            const res = await client.callTool({
+                name: "market_create_chat_session",
+                arguments: { userId: 1 }
             });
-            const newId = res.data.session_id;
+            const data = JSON.parse(res.content[0].text);
+            const newId = data.session_id;
             setSessionId(newId);
             sessionStorage.setItem("active_chat_session", newId);
             setMessages([
@@ -83,13 +91,15 @@ export default function CareerGuidance() {
     };
 
     const loadChatHistory = async (sessId) => {
+        if (!client) return;
         try {
-            const token = sessionStorage.getItem("authToken"); // Get Token
-            const res = await axios.get(`http://localhost:8000/chat/history/${sessId}`, {
-                headers: { Authorization: `Bearer ${token}` }
+            const res = await client.callTool({
+                name: "market_get_chat_history",
+                arguments: { sessionId: sessId }
             });
+            const data = JSON.parse(res.content[0].text);
             // Transform to UI format
-            const hist = res.data.messages.map((m, i) => ({
+            const hist = (data.messages || []).map((m, i) => ({
                 id: i,
                 text: cleanMessageText(m.content), // Apply cleaning to history
                 sender: m.role === 'assistant' ? 'bot' : m.role,
@@ -114,21 +124,24 @@ export default function CareerGuidance() {
     };
 
     const loadAllSessions = async () => {
+        if (!client) return;
         try {
-            const token = sessionStorage.getItem("authToken"); // Get Token
-            const res = await axios.get("http://localhost:8000/chat/sessions", {
-                headers: { Authorization: `Bearer ${token}` }
+            const res = await client.callTool({
+                name: "market_get_chat_sessions",
+                arguments: { userId: 1 }
             });
-            setChatHistoryList(res.data);
+            const data = JSON.parse(res.content[0].text);
+            setChatHistoryList(data);
         } catch (e) { console.error(e); }
     }
 
     const deleteSession = async (sessId) => {
         if (!confirm("Are you sure you want to delete this chat?")) return;
+        if (!client) return;
         try {
-            const token = sessionStorage.getItem("authToken");
-            await axios.delete(`http://localhost:8000/chat/sessions/${sessId}`, {
-                headers: { Authorization: `Bearer ${token}` }
+            await client.callTool({
+                name: "market_delete_chat_session",
+                arguments: { sessionId: sessId }
             });
             // If deleting active session, switch to new one or clear
             if (sessionId === sessId) {
@@ -164,39 +177,59 @@ export default function CareerGuidance() {
         setUploaded(false);
     };
 
+
     const handleUpload = async () => {
         if (!file || !targetRole) return;
+        if (!isConnected || !client) {
+            alert("MCP not connected");
+            return;
+        }
+
         setUploading(true);
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("target_role", targetRole);
 
         try {
-            // Ensure backend URL is correct
-            const token = sessionStorage.getItem("authToken");
-            const response = await axios.post("http://localhost:8000/analyze", formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${token}`
-                },
-            });
+            // Read file as Base64 for MCP
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const base64Data = e.target.result.split(',')[1] || e.target.result;
+                    
+                    const response = await client.callTool({
+                        name: "resume_analyze",
+                        arguments: {
+                            userId: 1, // dummy user
+                            file_content: base64Data,
+                            file_name: file.name,
+                            file_type: file.type || "application/pdf",
+                            targetRole: targetRole
+                        }
+                    });
 
-            console.log("Analysis Data:", response.data);
-            if (response.data.profile) setProfile(response.data.profile);
-            if (response.data.projects) setProjects(response.data.projects);
+                    const result = JSON.parse(response.content[0].text);
+                    console.log("Analysis Data:", result);
+                    
+                    if (result.profile) setProfile(result.profile);
+                    if (result.recommendedProjects) setProjects(result.recommendedProjects);
 
-            setUploading(false);
-            setUploaded(true);
+                    setUploading(false);
+                    setUploaded(true);
 
-            setMessages(prev => [...prev, {
-                id: Date.now(),
-                text: `✅ I've analyzed your resume! Based on your gaps for "${targetRole}", I have generated new projects in the Project Lab.`,
-                sender: "bot",
-                timestamp: new Date()
-            }]);
+                    setMessages(prev => [...prev, {
+                        id: Date.now(),
+                        text: `✅ I've analyzed your resume! Based on your gaps for "${targetRole}", I have generated new projects in the Project Lab.`,
+                        sender: "bot",
+                        timestamp: new Date()
+                    }]);
+                } catch (error) {
+                    console.error("Upload error:", error);
+                    alert("Analysis failed.");
+                    setUploading(false);
+                }
+            };
+            reader.readAsDataURL(file);
         } catch (error) {
             console.error("Upload error:", error);
-            alert("Analysis failed. Ensure Backend is running (http://localhost:8000).");
+            alert("Analysis failed.");
             setUploading(false);
         }
     };
@@ -209,32 +242,65 @@ export default function CareerGuidance() {
         setIsTyping(true);
 
         try {
-            // Updated to send JSON with session_id
-            const token = sessionStorage.getItem("authToken");
-            const res = await axios.post("http://localhost:8000/chat", {
-                message: userMsg.text,
-                session_id: sessionId
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
+            if (!isConnected || !client) {
+                throw new Error("MCP not connected");
+            }
+            
+            const res = await client.callTool({
+                name: "market_career_mentor",
+                arguments: { 
+                    message: userMsg.text, 
+                    context: {
+                        profile: profile,
+                        generatedProjects: generatedProjects,
+                        history: messages.slice(-5).map(m => ({ role: m.sender === 'bot' ? 'system' : 'user', content: m.text }))
+                    } 
+                }
             });
-            let responseText = res.data.response;
+            const data = JSON.parse(res.content[0].text);
+            let responseText = data.response || data.reply;
 
-            // Check for JSON block (Project Generation)
-            // Allow ```json or just ```
-            const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            // Check for JSON block (Project Generation or Actions)
+            let jsonContent = null;
+            const markdownMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            const embeddedMatch = responseText.match(/(\{[\s\S]*"actions"[\s\S]*\})/);
+            
+            try {
+                if (markdownMatch) {
+                    jsonContent = JSON.parse(markdownMatch[1]);
+                } else if (embeddedMatch) {
+                    jsonContent = JSON.parse(embeddedMatch[1]);
+                } else if (responseText.trim().startsWith('{')) {
+                    jsonContent = JSON.parse(responseText);
+                }
+            } catch (e) {
+                // Not valid JSON, ignore
+            }
 
-            if (jsonMatch) {
+            if (jsonContent) {
                 try {
-                    const jsonContent = JSON.parse(jsonMatch[1]);
+                    // Check for direct projects array or actions array
+                    let generatedProjects = [];
                     if (jsonContent.projects && Array.isArray(jsonContent.projects)) {
+                        generatedProjects = jsonContent.projects;
+                    } else if (jsonContent.actions && Array.isArray(jsonContent.actions)) {
+                        const replaceAction = jsonContent.actions.find(a => a.type === 'REPLACE_PROJECTS');
+                        if (replaceAction && replaceAction.projects) {
+                            generatedProjects = replaceAction.projects;
+                        }
+                        if (jsonContent.reply) {
+                            responseText = jsonContent.reply;
+                        }
+                    }
 
+                    if (generatedProjects.length > 0) {
                         // Sanitize and Normalize new projects
-                        const newProjects = jsonContent.projects.map((p, idx) => ({
+                        const newProjects = generatedProjects.map((p, idx) => ({
                             ...p,
                             id: p.id || `gen-${Date.now()}-${idx}`,
                             difficulty: p.difficulty || "Medium", // Default to Medium if missing
                             icon: p.icon || "code",
-                            color: p.color || "from-blue-500 to-cyan-600"
+                            color: p.color || "from-[#fbc05c] to-[#fbc05c]"
                         }));
 
                         const currentProjects = store.generatedProjects || [];
@@ -265,8 +331,13 @@ export default function CareerGuidance() {
                         setProjects(merged);
 
                         // 4. Persist to Backend (Save for Refresh)
-                        axios.post("http://localhost:8000/update-generated-projects", { projects: merged })
-                            .catch(err => console.error("Failed to save projects persistence:", err));
+                        // This endpoint is not fully implemented in MCP, but we swallow the error for prototype.
+                        if (client) {
+                            client.callTool({
+                                name: "market_update_generated_projects",
+                                arguments: { projects: merged }
+                            }).catch(err => console.error("Failed to save projects persistence:", err));
+                        }
 
                         // Remove JSON from display text
                         // FIX: Aggressive regex to catch ```json ... ``` AND raw JSON blocks if leaked
@@ -306,12 +377,12 @@ export default function CareerGuidance() {
 
     return (
         <div className="flex flex-col min-h-screen bg-transparent p-6 text-gray-200">
-            <Link to="/" className="flex items-center gap-2 text-neon hover:text-neon/80 mb-6 w-fit">
+            <Link to="/" className="flex items-center gap-2 text-[#fbc05c] hover:text-[#fbc05c]/80 mb-6 w-fit">
                 <ArrowLeft size={20} /> Back to Dashboard
             </Link>
 
-            <h1 className="text-3xl font-bold text-neon mb-2 flex items-center gap-2">
-                <Sparkles className="text-neon" /> Career Guidance Center
+            <h1 className="text-3xl font-bold text-[#fbc05c] mb-2 flex items-center gap-2">
+                <Sparkles className="text-[#fbc05c]" /> Career Guidance Center
             </h1>
             <p className="text-gray-400 mb-8">Upload your resume for analysis or chat with our AI to refine your path.</p>
 
@@ -321,7 +392,7 @@ export default function CareerGuidance() {
                 <div className="flex flex-col gap-6">
 
                     {/* LEFT: Resume */}
-                    <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 h-fit">
+                    <div className="bg-[#0a0a0a]/50 border border-gray-800 rounded-2xl p-6 h-fit">
 
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
@@ -338,7 +409,7 @@ export default function CareerGuidance() {
                                         type="text"
                                         value={targetRole}
                                         onChange={(e) => setTargetRole(e.target.value)}
-                                        className="w-full bg-gray-800 border-gray-700 rounded-lg p-3 text-white focus:border-neon outline-none"
+                                        className="w-full bg-[#111111] border-gray-700 rounded-lg p-3 text-white focus:border-neon outline-none"
                                     />
                                 </div>
 
@@ -349,9 +420,9 @@ export default function CareerGuidance() {
                                         <input type="file" onChange={handleFileChange} className="hidden" accept=".pdf,.txt" />
                                     </label>
                                 ) : (
-                                    <div className="bg-gray-800 p-4 rounded-xl flex justify-between items-center">
+                                    <div className="bg-[#111111] p-4 rounded-xl flex justify-between items-center">
                                         <div className="flex items-center gap-3">
-                                            <FileText className="text-neon" />
+                                            <FileText className="text-[#fbc05c]" />
                                             <span className="text-white truncate max-w-[200px]">{file.name}</span>
                                         </div>
                                         <button onClick={removeFile}><X className="text-gray-400 hover:text-red-400" /></button>
@@ -380,93 +451,39 @@ export default function CareerGuidance() {
                     </div>
 
 
-                    {/* Resume Builder Promo Section */}
-                    <div className="bg-gradient-to-r from-purple-900/40 to-blue-900/40 border border-purple-500/30 rounded-2xl p-5 flex items-center justify-between mt-6">
-                        <div>
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <FileText className="text-purple-400" size={20} /> AI Resume Architect
-                            </h3>
-                            <p className="text-sm text-gray-300 mt-1">
-                                Build a perfect resume tailored to your dream job using your Ekalavya projects.
-                            </p>
-                        </div>
-                        <Link to="/resume-builder" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                            Build Now <ArrowLeft className="rotate-180" size={16} />
-                        </Link>
-                    </div>
-
                 </div>
 
 
                 {/* RIGHT: Chat */}
-                <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 flex flex-col h-[600px]">
+                <div className="bg-[#0a0a0a]/50 border border-gray-800 rounded-2xl p-6 flex flex-col h-[600px]">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                                <MessageCircle className="text-blue-400" />
+                            <div className="w-10 h-10 bg-[#fbc05c]/20 rounded-lg flex items-center justify-center">
+                                <MessageCircle className="text-[#fbc05c]" />
                             </div>
                             <h2 className="text-xl font-bold text-white">Career Mentor AI</h2>
                         </div>
 
-                        <div className="flex gap-2 relative">
-                            <button
-                                onClick={() => setShowHistory(!showHistory)}
-                                className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors"
-                                title="Chat History"
-                            >
-                                <History size={20} />
-                            </button>
-                            <button
-                                onClick={createNewSession}
-                                className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors"
-                                title="New Chat"
-                            >
-                                <Plus size={20} />
-                            </button>
-
-                            {/* History Dropdown */}
-                            {showHistory && (
-                                <div className="absolute top-12 right-0 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto">
-                                    {chatHistoryList.map(s => (
-                                        <div
-                                            key={s.id}
-                                            className={`p-3 border-b border-gray-800 flex justify-between items-center group hover:bg-gray-800 transition-colors ${s.id === sessionId ? 'bg-gray-800 text-neon' : 'text-gray-400'}`}
-                                        >
-                                            <span
-                                                onClick={() => switchSession(s.id)}
-                                                className="cursor-pointer truncate flex-1"
-                                            >
-                                                {s.title}
-                                            </span>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    deleteSession(s.id);
-                                                }}
-                                                className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-opacity"
-                                                title="Delete Chat"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-4 pr-2 mb-4 scrollbar-thin scrollbar-thumb-gray-700">
                         {messages.map((msg) => (
                             <div key={msg.id} className={`group flex gap-3 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                                {msg.sender === "bot" && <div className="w-8 h-8 rounded-full bg-neon/20 flex items-center justify-center"><Bot size={16} className="text-neon" /></div>}
+                                {msg.sender === "bot" && <div className="w-8 h-8 rounded-full bg-neon/20 flex items-center justify-center"><Bot size={16} className="text-[#fbc05c]" /></div>}
 
                                 <div className={`relative max-w-[80%] p-3 rounded-2xl text-sm ${msg.sender === "user"
-                                    ? "bg-blue-600 text-white rounded-tr-none"
-                                    : "bg-gray-800 text-gray-200 border border-gray-700 rounded-tl-none"
+                                    ? "bg-[#fbc05c] text-white rounded-tr-none"
+                                    : "bg-[#111111] text-gray-200 border border-gray-700 rounded-tl-none"
                                     }`}>
-                                    {/* Pure text for safety */}
-                                    <p className="whitespace-pre-wrap">{msg.text}</p>
-
+                                    {msg.sender === "user" ? (
+                                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                                    ) : (
+                                        <div className="prose prose-invert max-w-none text-sm prose-p:leading-relaxed prose-pre:bg-[#0a111e] prose-pre:border prose-pre:border-gray-800">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {msg.text}
+                                            </ReactMarkdown>
+                                        </div>
+                                    )}
                                     {/* Copy / Edit Actions */}
                                     <div className={`absolute -bottom-6 ${msg.sender === 'user' ? 'right-0' : 'left-0'} flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity`}>
                                         <button
@@ -498,7 +515,7 @@ export default function CareerGuidance() {
                             onChange={(e) => setChatInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
                             placeholder="Ask about your resume..."
-                            className="flex-1 bg-gray-800 border-gray-700 rounded-xl px-4 text-white focus:border-neon outline-none"
+                            className="flex-1 bg-[#111111] border-gray-700 rounded-xl px-4 text-white focus:border-neon outline-none"
                         />
                         <button onClick={handleSendChat} className="p-3 bg-neon text-black rounded-xl hover:bg-neon/80 flex items-center justify-center transition-colors">
                             <Send size={20} />

@@ -76,43 +76,43 @@ export default function ServicesList() {
   const navigate = useNavigate();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
       {services.map((service, index) => (
         <motion.div
           key={service.title}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
+          transition={{ delay: index * 0.05 }}
           className="h-full"
         >
           <ParticleCard
             onClick={() => navigate(service.path)}
-            className="group relative bg-[#030712] border border-white/5 hover:border-purple-500/50 rounded-3xl p-8 transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(168,85,247,0.15)] overflow-hidden cursor-pointer flex flex-col items-start min-h-[280px] h-full"
-            glowColor="168, 85, 247"
+            className="group relative bg-[#050a12] border border-white/10 hover:border-blue-500/50 rounded-xl p-5 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 overflow-hidden cursor-pointer flex flex-col items-start h-full"
+            glowColor="59, 130, 246"
           >
             {/* Icon */}
-            <div className="p-3 bg-white/5 rounded-2xl mb-6 group-hover:bg-purple-500/20 group-hover:scale-110 transition-all duration-300 relative z-10">
-              <service.icon size={24} className="text-gray-300 group-hover:text-purple-400" />
+            <div className="p-2 bg-white/5 rounded-lg mb-4 group-hover:bg-blue-500/20 group-hover:scale-105 transition-all duration-300 relative z-10">
+              <service.icon size={18} className="text-gray-400 group-hover:text-blue-500" />
             </div>
 
             {/* Header Label */}
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 relative z-10">
+            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 relative z-10">
               {service.headerLabel}
             </div>
 
-            {/* Title */}
-            <h3 className="text-xl font-bold text-white mb-3 group-hover:text-purple-100 transition-colors relative z-10">
-              {service.title}
-            </h3>
+            {/* Title & Description */}
+            <div className="flex-1 w-full relative z-10">
+              <h3 className="text-sm font-semibold text-gray-200 mb-1 group-hover:text-blue-400 transition-colors line-clamp-1">
+                {service.title}
+              </h3>
+              <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">
+                {service.description}
+              </p>
+            </div>
 
-            {/* Description */}
-            <p className="text-gray-400 text-sm mb-8 leading-relaxed line-clamp-2 relative z-10">
-              {service.description}
-            </p>
-
-            {/* Link */}
-            <div className="mt-auto flex items-center text-purple-400 text-sm font-bold tracking-wide relative z-10">
-              Explore <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
+            {/* Hover Arrow */}
+            <div className="absolute right-4 bottom-4 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300 z-10">
+              <ArrowRight size={16} className="text-blue-500" />
             </div>
           </ParticleCard>
         </motion.div>

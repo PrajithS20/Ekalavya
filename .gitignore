@@ -39,6 +39,9 @@ backend/career_sapling.db
 # Logs
 *.log
 
+# Obsolete Python Backend
+backend/
+
 # Node.js
 node_modules/
 npm-debug.log

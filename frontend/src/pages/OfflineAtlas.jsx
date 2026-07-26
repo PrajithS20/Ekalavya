@@ -8,7 +8,7 @@ const offlineResources = [
   {
     category: "Programming Fundamentals",
     icon: Code,
-    color: "from-blue-500 to-cyan-600",
+    color: "from-[#fbc05c] to-[#fbc05c]",
     glow: "6, 182, 212", // Cyan
     resources: [
       {
@@ -72,7 +72,7 @@ const offlineResources = [
   {
     category: "Data Science & AI",
     icon: Cpu,
-    color: "from-purple-500 to-pink-600",
+    color: "from-[#fbc05c] to-[#fbc05c]",
     glow: "236, 72, 153", // Pink
     resources: [
       {
@@ -128,7 +128,7 @@ const offlineResources = [
   {
     category: "Databases & DevOps",
     icon: Database,
-    color: "from-indigo-500 to-purple-600",
+    color: "from-[#fbc05c] to-[#fbc05c]",
     glow: "139, 92, 246", // Violet
     resources: [
       {
@@ -160,10 +160,10 @@ const offlineResources = [
 ];
 
 const borderMap = [
-  "hover:border-cyan-500/50",
+  "hover:border-[#fbc05c]/50",
   "hover:border-emerald-500/50",
-  "hover:border-pink-500/50",
-  "hover:border-orange-500/50",
+  "hover:border-[#fbc05c]/50",
+  "hover:border-[#fbc05c]/50",
   "hover:border-violet-500/50"
 ];
 
@@ -191,9 +191,9 @@ export default function OfflineAtlas() {
             transition={{ delay: 0.1 }}
             className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
           >
-            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-sm rounded-lg p-4 border border-blue-500/20">
+            <div className="bg-gradient-to-br from-[#fbc05c]/10 to-[#fbc05c]/10 backdrop-blur-sm rounded-lg p-4 border border-[#fbc05c]/20">
               <div className="flex items-center gap-2 mb-2">
-                <Download size={20} className="text-blue-400" />
+                <Download size={20} className="text-[#fbc05c]" />
                 <span className="text-sm text-gray-400">Downloaded</span>
               </div>
               <div className="text-2xl font-bold text-white">24</div>
@@ -207,17 +207,17 @@ export default function OfflineAtlas() {
               <div className="text-2xl font-bold text-white">45.2 GB</div>
               <div className="text-xs text-gray-400">Storage Used</div>
             </div>
-            <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm rounded-lg p-4 border border-purple-500/20">
+            <div className="bg-gradient-to-br from-[#fbc05c]/10 to-[#fbc05c]/10 backdrop-blur-sm rounded-lg p-4 border border-[#fbc05c]/20">
               <div className="flex items-center gap-2 mb-2">
-                <Video size={20} className="text-purple-400" />
+                <Video size={20} className="text-[#fbc05c]" />
                 <span className="text-sm text-gray-400">Video Hours</span>
               </div>
               <div className="text-2xl font-bold text-white">380+</div>
               <div className="text-xs text-gray-400">Learning Content</div>
             </div>
-            <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 backdrop-blur-sm rounded-lg p-4 border border-orange-500/20">
+            <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 backdrop-blur-sm rounded-lg p-4 border border-[#fbc05c]/20">
               <div className="flex items-center gap-2 mb-2">
-                <FileText size={20} className="text-orange-400" />
+                <FileText size={20} className="text-[#fbc05c]" />
                 <span className="text-sm text-gray-400">Documents</span>
               </div>
               <div className="text-2xl font-bold text-white">156</div>
@@ -227,7 +227,7 @@ export default function OfflineAtlas() {
 
           {/* Resource Categories */}
           <div className="space-y-8">
-            {offlineResources.map((category, categoryIndex) => <div className="bg-slate-900/40 backdrop-blur-sm rounded-2xl p-6 border border-white/5">
+            {offlineResources.map((category, categoryIndex) => <div className="bg-[#0a0a0a]/40 backdrop-blur-sm rounded-2xl p-6 border border-white/5">
               <div className="flex items-center gap-3 mb-6">
                 <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${category.color} flex items-center justify-center shadow-lg shadow-${category.color.split(' ')[1]}/20`}>
                   <category.icon size={20} className="text-white" />
@@ -258,7 +258,7 @@ export default function OfflineAtlas() {
                         </div>
                       </div>
 
-                      <h3 className="font-semibold text-white group-hover:text-cyan-400 transition-colors mb-2">
+                      <h3 className="font-semibold text-white group-hover:text-[#fbc05c] transition-colors mb-2">
                         {resource.title}
                       </h3>
 

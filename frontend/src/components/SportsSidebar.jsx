@@ -45,7 +45,7 @@ export default function SportsSidebar({ onLogout }) {
                     >
                         <button
                             onClick={toggleSidebar}
-                            className="bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-r border-slate-700/50 p-3 rounded-r-lg shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 group"
+                            className="bg-gradient-to-r from-[#111111]/95 to-[#0a0a0a]/95 backdrop-blur-xl border-r border-slate-700/50 p-3 rounded-r-lg shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 group"
                         >
                             <ChevronRight
                                 size={20}
@@ -134,7 +134,7 @@ export default function SportsSidebar({ onLogout }) {
                                 <div
                                     className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors group"
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center border border-white/10 group-hover:border-emerald-500/50 transition-colors">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-[#0a0a0a] flex items-center justify-center border border-white/10 group-hover:border-emerald-500/50 transition-colors">
                                         <User size={20} className="text-gray-300 group-hover:text-emerald-400" />
                                     </div>
                                     <div>

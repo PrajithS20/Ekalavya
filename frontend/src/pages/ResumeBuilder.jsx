@@ -2,20 +2,30 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Sparkles, FileText, Briefcase, Download, CheckCircle, PenTool } from "lucide-react";
 import axios from "axios";
+import { useMCP } from "../context/MCPProvider";
 
 export default function ResumeBuilder() {
     const [jobDescription, setJobDescription] = useState("");
     const [generating, setGenerating] = useState(false);
     const [resumeData, setResumeData] = useState(null);
 
+    const { client, isConnected } = useMCP();
+
     const handleGenerate = async () => {
         if (!jobDescription.trim()) return;
+        if (!isConnected || !client) {
+            alert("MCP Not Connected");
+            return;
+        }
+
         setGenerating(true);
         try {
-            const res = await axios.post("http://localhost:8000/resume/build", {
-                job_description: jobDescription
+            const res = await client.callTool({
+                name: "resume_build_resume",
+                arguments: { jobDescription }
             });
-            setResumeData(res.data);
+            const data = JSON.parse(res.content[0].text);
+            setResumeData(data);
         } catch (err) {
             console.error(err);
             alert("Failed to generate resume. Ensure backend is running.");
@@ -93,21 +103,21 @@ export default function ResumeBuilder() {
     return (
         <div className="min-h-screen bg-transparent text-gray-200 flex flex-col">
             {/* Header */}
-            <div className="p-6 border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-20">
+            <div className="p-6 border-b border-gray-800 bg-[#0a0a0a]/50 backdrop-blur-sm sticky top-0 z-20">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Link to="/career-guidance" className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+                        <Link to="/career-guidance" className="p-2 hover:bg-[#111111] rounded-lg transition-colors">
                             <ArrowLeft className="text-gray-400" size={20} />
                         </Link>
                         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                            <FileText className="text-purple-400" />
+                            <FileText className="text-[#fbc05c]" />
                             Resume Architect AI
                         </h1>
                     </div>
                     {resumeData && (
                         <button
                             onClick={handlePrint}
-                            className="btn-primary flex items-center gap-2 text-sm cursor-pointer hover:bg-purple-600 transition-colors"
+                            className="btn-primary flex items-center gap-2 text-sm cursor-pointer hover:bg-[#fbc05c] transition-colors"
                         >
                             <Download size={16} /> Save as PDF
                         </button>
@@ -119,16 +129,16 @@ export default function ResumeBuilder() {
 
                 {/* LEFT: Input & Context */}
                 <div className="space-y-6">
-                    <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
+                    <div className="bg-[#0a0a0a]/50 border border-gray-800 rounded-2xl p-6">
                         <div className="flex items-center gap-3 mb-4">
-                            <Briefcase className="text-purple-400" />
+                            <Briefcase className="text-[#fbc05c]" />
                             <h2 className="text-xl font-bold text-white">Target Job</h2>
                         </div>
                         <p className="text-gray-400 text-sm mb-4">
                             Paste the job description or company name here. The AI will analyze your completed Ekalavya projects and build a tailored resume.
                         </p>
                         <textarea
-                            className="w-full bg-gray-950/50 border border-gray-700 rounded-xl p-4 text-gray-200 focus:border-purple-500 outline-none transition-all h-64 resize-none font-mono text-sm"
+                            className="w-full bg-gray-950/50 border border-gray-700 rounded-xl p-4 text-gray-200 focus:border-[#fbc05c] outline-none transition-all h-64 resize-none font-mono text-sm"
                             placeholder="Example: Software Engineer at Google. Needs React, Python, and Cloud experience..."
                             value={jobDescription}
                             onChange={(e) => setJobDescription(e.target.value)}
@@ -149,11 +159,11 @@ export default function ResumeBuilder() {
                         </button>
                     </div>
 
-                    <div className="bg-blue-900/10 border border-blue-800/30 rounded-2xl p-6">
-                        <h3 className="text-blue-300 font-medium mb-2 flex items-center gap-2">
+                    <div className="bg-[#fbc05c]/10 border border-[#fbc05c]/30 rounded-2xl p-6">
+                        <h3 className="text-[#fbc05c] font-medium mb-2 flex items-center gap-2">
                             <CheckCircle size={16} /> Ekalavya Advantage
                         </h3>
-                        <p className="text-sm text-blue-400/80">
+                        <p className="text-sm text-[#fbc05c]/80">
                             This AI automatically cites your **Project Lab** and **My Lab** work, converting your code contributions into professional "STAR" bullet points.
                         </p>
                     </div>

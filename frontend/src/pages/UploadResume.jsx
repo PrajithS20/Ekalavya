@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Upload, FileText, CheckCircle, ArrowLeft, X, Briefcase } from "lucide-react";
 import axios from "axios";
 import { useProgressStore } from "../store/useProgressStore";
+import { useMCP } from "../context/MCPProvider";
 
 export default function UploadResume() {
   const [file, setFile] = useState(null);
@@ -31,32 +32,52 @@ export default function UploadResume() {
     }
   };
 
+  const { client, isConnected } = useMCP();
+
   const handleUpload = async () => {
     if (!file || !targetRole) return;
+    if (!isConnected || !client) {
+      alert("MCP Not Connected");
+      return;
+    }
 
     setUploading(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("target_role", targetRole);
-
     try {
-      const response = await axios.post("http://localhost:8000/analyze", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const base64Data = e.target.result.split(',')[1] || e.target.result;
+          
+          const response = await client.callTool({
+            name: "resume_analyze",
+            arguments: {
+              userId: 1, // dummy user
+              file_content: base64Data,
+              file_name: file.name,
+              file_type: file.type || "application/pdf",
+              targetRole: targetRole
+            }
+          });
 
-      console.log("Analysis Result:", response.data);
+          const result = JSON.parse(response.content[0].text);
+          console.log("Analysis Result:", result);
 
-      setProfile(response.data.profile);
-      setProjects(response.data.projects);
+          setProfile(result.profile);
+          setProjects(result.recommendedProjects);
 
-      setUploading(false);
-      setUploaded(true);
+          setUploading(false);
+          setUploaded(true);
+        } catch (err) {
+          console.error("Analysis processing error:", err);
+          alert("Failed to analyze resume. Please try again.");
+          setUploading(false);
+        }
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to analyze resume. Please try again.");
+      alert("Failed to read resume. Please try again.");
       setUploading(false);
     }
   };
@@ -73,13 +94,13 @@ export default function UploadResume() {
       className="flex flex-col min-h-screen bg-transparent"
     >
       <div className="p-6">
-        <Link to="/project-lab" className="flex items-center gap-2 text-neon hover:text-neon/80 transition-colors mb-8">
+        <Link to="/project-lab" className="flex items-center gap-2 text-[#fbc05c] hover:text-[#fbc05c]/80 transition-colors mb-8">
           <ArrowLeft size={20} />
           Back to Project Lab
         </Link>
 
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold text-neon mb-8 text-center">Upload Resume</h1>
+          <h1 className="text-3xl font-bold text-[#fbc05c] mb-8 text-center">Upload Resume</h1>
 
           <motion.div
             className="card p-8"
@@ -88,7 +109,7 @@ export default function UploadResume() {
             transition={{ delay: 0.2 }}
           >
             <div className="text-center mb-8">
-              <Upload className="text-neon mx-auto mb-4" size={64} />
+              <Upload className="text-[#fbc05c] mx-auto mb-4" size={64} />
               <h2 className="text-xl font-semibold mb-2">Resume Analysis</h2>
               <p className="text-gray-400">
                 Upload your resume in PDF or Text format and get instant AI-powered feedback and optimization suggestions.
@@ -98,7 +119,7 @@ export default function UploadResume() {
             {!uploaded && (
               <div className="mb-6">
                 <label className="block text-gray-400 mb-2 text-sm">Target Role</label>
-                <div className="flex items-center bg-gray-800 rounded-lg px-4 py-3 border border-gray-700 focus-within:border-neon transition-colors">
+                <div className="flex items-center bg-[#111111] rounded-lg px-4 py-3 border border-gray-700 focus-within:border-neon transition-colors">
                   <Briefcase size={20} className="text-gray-400 mr-3" />
                   <input
                     type="text"
@@ -133,9 +154,9 @@ export default function UploadResume() {
             )}
 
             {file && !uploaded && (
-              <div className="flex items-center justify-between bg-gray-800 p-4 rounded-lg">
+              <div className="flex items-center justify-between bg-[#111111] p-4 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <FileText className="text-neon" size={24} />
+                  <FileText className="text-[#fbc05c]" size={24} />
                   <div>
                     <p className="font-medium">{file.name}</p>
                     <p className="text-sm text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
@@ -179,7 +200,7 @@ export default function UploadResume() {
                   Our Market Agents have analyzed your profile against current job trends.
                 </p>
                 <div className="space-y-4">
-                  <div className="bg-gray-800 p-4 rounded-lg">
+                  <div className="bg-[#111111] p-4 rounded-lg">
                     <h4 className="font-medium mb-2">Analysis Complete</h4>
                     <div className="w-full bg-gray-700 rounded-full h-2">
                       <motion.div

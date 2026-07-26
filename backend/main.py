@@ -27,6 +27,9 @@ market = MarketAnalystAgent(mirror.client)
 foundry = FoundryAgent(mirror.client)
 resume_bot = ResumeAgent(mirror.client)
 
+import research_agent
+app.include_router(research_agent.router, prefix="/research")
+
 # --- Auth Models & Logic ---
 import secrets
 import hashlib

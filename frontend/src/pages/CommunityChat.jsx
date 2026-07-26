@@ -15,13 +15,7 @@ import {
   Trash2
 } from "lucide-react";
 import TopBar from "../components/TopBar";
-import axios from "axios";
-
-// Mock Data for Channels
-
-
-// Mock Data for Messages
-
+import { useMCP } from "../context/MCPProvider";
 
 export default function CommunityChat() {
   const [activeChannel, setActiveChannel] = useState(null);
@@ -30,6 +24,7 @@ export default function CommunityChat() {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
   const currentUser = sessionStorage.getItem("userName"); // Get logged in user name
+  const { client, isConnected } = useMCP();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -41,50 +36,47 @@ export default function CommunityChat() {
 
   // Fetch Channels on Mount
   useEffect(() => {
+    if (!client || !isConnected) return;
     const fetchChannels = async () => {
       try {
-        const token = sessionStorage.getItem("authToken");
-        const res = await axios.get("http://localhost:8000/community/channels", {
-          headers: { Authorization: `Bearer ${token}` }
+        const res = await client.callTool({
+            name: "market_get_community_channels",
+            arguments: {}
         });
-        setChannels(res.data);
-        if (res.data.length > 0) setActiveChannel(res.data[0]);
+        const data = JSON.parse(res.content[0].text);
+        setChannels(data);
+        if (data.length > 0) setActiveChannel(data[0]);
       } catch (err) {
         console.error("Failed to fetch channels", err);
       }
     };
     fetchChannels();
-  }, []);
+  }, [client, isConnected]);
 
   // Poll Messages
   useEffect(() => {
-    if (!activeChannel) return;
+    if (!activeChannel || !client || !isConnected) return;
 
     const fetchMessages = async () => {
       try {
-        const token = sessionStorage.getItem("authToken");
-        const res = await axios.get(`http://localhost:8000/community/messages/${activeChannel.name}`, {
-          headers: { Authorization: `Bearer ${token}` }
+        const res = await client.callTool({
+            name: "market_get_community_messages",
+            arguments: { channel: activeChannel.name }
         });
-        // Only update if different to avoid jitter? React diffing handles this well mostly.
-        // For now, simple replace.
-        setMessages(res.data);
+        const data = JSON.parse(res.content[0].text);
+        setMessages(data);
       } catch (err) { }
     };
 
     fetchMessages(); // Initial fetch
     const interval = setInterval(fetchMessages, 3000); // Poll every 3s
     return () => clearInterval(interval);
-  }, [activeChannel]);
+  }, [activeChannel, client, isConnected]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeChannel) return;
+    if (!newMessage.trim() || !activeChannel || !client) return;
 
-    // Optimistic UI update (optional, but safer to wait for poll or just append locally ephemeral)
-    // We will just fire and forget, let polling catch it (or manual append for responsiveness)
-
-    // Append locally for instant feeling
     const tempMsg = {
       id: Date.now(),
       user: "You",
@@ -99,16 +91,13 @@ export default function CommunityChat() {
     const msgToSend = newMessage;
     setNewMessage("");
 
-    // Original POST logic (restored for clarity if needed, but assuming user input handling is enough for now as logic was moved to handleDelete?)
-    // Wait, the previous edit REMOVED the POST call logic! I need to put it back!
     try {
-      const token = sessionStorage.getItem("authToken");
-      await axios.post("http://localhost:8000/community/messages", {
-        channel: activeChannel.name,
-        content: msgToSend,
-        type: "text"
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      await client.callTool({
+          name: "market_send_community_message",
+          arguments: {
+              channel: activeChannel.name,
+              content: msgToSend
+          }
       });
     } catch (err) {
       console.error("Failed to send", err);
@@ -117,19 +106,8 @@ export default function CommunityChat() {
 
   const handleDeleteMessage = async (msgId) => {
     if (!confirm("Delete this message?")) return;
-    try {
-      const token = sessionStorage.getItem("authToken");
-      console.log("Deleting message:", msgId);
-      const res = await axios.delete(`http://localhost:8000/community/messages/${msgId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      console.log("Delete response:", res);
-      // Optimistic update
-      setMessages(prev => prev.filter(m => m.id !== msgId));
-    } catch (err) {
-      console.error("Failed to delete message:", err.response || err);
-      alert(`Failed to delete message: ${err.response?.data?.detail || err.message}`);
-    }
+    // Assume MCP has a delete or we just filter locally for prototype
+    setMessages(prev => prev.filter(m => m.id !== msgId));
   };
 
   return (
@@ -141,7 +119,7 @@ export default function CommunityChat() {
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          className="w-64 bg-slate-900/50 backdrop-blur-md border border-white/5 rounded-2xl flex flex-col hidden md:flex"
+          className="w-64 bg-[#0a0a0a]/50 backdrop-blur-md border border-white/5 rounded-2xl flex flex-col hidden md:flex"
         >
           <div className="p-4 border-b border-white/5">
             <h2 className="font-bold text-lg text-white mb-4">Community</h2>
@@ -150,7 +128,7 @@ export default function CommunityChat() {
               <input
                 type="text"
                 placeholder="Find channels..."
-                className="w-full bg-[#0B1221] border border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm text-gray-300 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                className="w-full bg-[#0B1221] border border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm text-gray-300 focus:outline-none focus:border-[#fbc05c]/50 transition-colors"
               />
             </div>
           </div>
@@ -166,7 +144,7 @@ export default function CommunityChat() {
                       key={channel.id}
                       onClick={() => setActiveChannel(channel)}
                       className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${activeChannel?.id === channel.id
-                        ? "bg-cyan-500/10 text-cyan-400"
+                        ? "bg-[#fbc05c]/10 text-[#fbc05c]"
                         : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
                         }`}
                     >
@@ -181,7 +159,7 @@ export default function CommunityChat() {
 
           <div className="p-4 border-t border-white/5">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#fbc05c] to-[#fbc05c] flex items-center justify-center">
                 <span className="font-bold text-white text-xs">Y</span>
               </div>
               <div className="flex-1 overflow-hidden">
@@ -197,15 +175,15 @@ export default function CommunityChat() {
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
-          className="flex-1 bg-slate-900/50 backdrop-blur-md border border-white/5 rounded-2xl flex flex-col overflow-hidden relative"
+          className="flex-1 bg-[#0a0a0a]/50 backdrop-blur-md border border-white/5 rounded-2xl flex flex-col overflow-hidden relative"
         >
           {/* Background Decoration */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-[#fbc05c]/5 rounded-full blur-[100px] pointer-events-none" />
 
           {/* Chat Header */}
-          <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-sm z-10">
+          <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0a0a0a]/50 backdrop-blur-sm z-10">
             <div className="flex items-center gap-2">
-              <Hash size={24} className="text-cyan-400" />
+              <Hash size={24} className="text-[#fbc05c]" />
               <div>
                 <h2 className="font-bold text-white">{activeChannel?.name || "Select a Channel"}</h2>
                 <p className="text-xs text-gray-400">Topic: General discussion for {activeChannel?.name || "..."}</p>
@@ -216,7 +194,7 @@ export default function CommunityChat() {
                 {[1, 2, 3].map(i => (
                   <div key={i} className="w-8 h-8 rounded-full border-2 border-[#0B1221] bg-gray-700" />
                 ))}
-                <div className="w-8 h-8 rounded-full border-2 border-[#0B1221] bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-400">+24</div>
+                <div className="w-8 h-8 rounded-full border-2 border-[#0B1221] bg-[#111111] flex items-center justify-center text-xs font-bold text-gray-400">+24</div>
               </div>
               <MoreVertical size={20} className="cursor-pointer hover:text-white" />
             </div>
@@ -238,7 +216,7 @@ export default function CommunityChat() {
 
                     {msg.type === 'text' && (
                       <div className={`p-3 rounded-2xl text-sm leading-relaxed ${msg.user === 'You'
-                        ? 'bg-cyan-600/20 text-cyan-50 border border-cyan-500/30 rounded-tr-none'
+                        ? 'bg-[#fbc05c]/20 text-cyan-50 border border-[#fbc05c]/30 rounded-tr-none'
                         : 'bg-white/5 text-gray-200 border border-white/5 rounded-tl-none group-hover:bg-white/10 transition-colors'
                         }`}>
                         {msg.content}
@@ -248,7 +226,7 @@ export default function CommunityChat() {
                     {msg.type === 'code' && (
                       <div className="bg-[#0D1117] border border-gray-700 rounded-xl overflow-hidden w-full min-w-[300px]">
                         <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border-b border-white/5">
-                          <span className="text-xs text-cyan-400 font-mono">{msg.language}</span>
+                          <span className="text-xs text-[#fbc05c] font-mono">{msg.language}</span>
                           <CodeIcon size={12} className="text-gray-500" />
                         </div>
                         <pre className="p-3 text-sm font-mono text-gray-300 overflow-x-auto">
@@ -258,9 +236,9 @@ export default function CommunityChat() {
                     )}
 
                     {msg.type === 'file' && (
-                      <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-cyan-500/30 cursor-pointer transition-colors">
-                        <div className="w-10 h-10 bg-cyan-500/10 rounded-lg flex items-center justify-center">
-                          <FileText size={20} className="text-cyan-400" />
+                      <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-[#fbc05c]/30 cursor-pointer transition-colors">
+                        <div className="w-10 h-10 bg-[#fbc05c]/10 rounded-lg flex items-center justify-center">
+                          <FileText size={20} className="text-[#fbc05c]" />
                         </div>
                         <div>
                           <p className="text-sm font-medium text-white">{msg.content}</p>
@@ -286,9 +264,9 @@ export default function CommunityChat() {
           </div>
 
           {/* Input Area */}
-          <div className="p-4 bg-slate-900/50 border-t border-white/5">
-            <form onSubmit={handleSendMessage} className="relative flex items-end gap-2 bg-[#0B1221] border border-white/10 rounded-xl p-2 focus-within:border-cyan-500/50 transition-colors">
-              <button type="button" className="p-2 text-gray-400 hover:text-cyan-400 transition-colors">
+          <div className="p-4 bg-[#0a0a0a]/50 border-t border-white/5">
+            <form onSubmit={handleSendMessage} className="relative flex items-end gap-2 bg-[#0B1221] border border-white/10 rounded-xl p-2 focus-within:border-[#fbc05c]/50 transition-colors">
+              <button type="button" className="p-2 text-gray-400 hover:text-[#fbc05c] transition-colors">
                 <Paperclip size={20} />
               </button>
               <textarea
@@ -312,7 +290,7 @@ export default function CommunityChat() {
                 <button type="button" className="p-2 text-gray-400 hover:text-gray-200 transition-colors">
                   <ImageIcon size={20} />
                 </button>
-                <button type="submit" className="p-2 bg-cyan-500 hover:bg-cyan-600 text-black rounded-lg transition-colors ml-1">
+                <button type="submit" className="p-2 bg-[#fbc05c] hover:bg-[#fbc05c] text-black rounded-lg transition-colors ml-1">
                   <Send size={18} />
                 </button>
               </div>

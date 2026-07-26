@@ -83,7 +83,7 @@ export default function AuthPage() {
             ease: "easeInOut",
             delay: 2
           }}
-          className="absolute bottom-40 left-20 text-teal-300"
+          className="absolute bottom-40 left-20 text-[#fbc05c]"
         >
           <TreePine size={50} />
         </motion.div>

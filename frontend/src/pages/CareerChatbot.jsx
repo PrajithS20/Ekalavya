@@ -6,6 +6,7 @@ import { MessageCircle, Send, ArrowLeft, Bot, User } from "lucide-react";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useMCP } from "../context/MCPProvider";
 
 export default function CareerChatbot() {
   const [messages, setMessages] = useState([
@@ -28,8 +29,14 @@ export default function CareerChatbot() {
     scrollToBottom();
   }, [messages]);
 
+  const { client, isConnected } = useMCP();
+
   const handleSend = async () => {
     if (!input.trim()) return;
+    if (!isConnected || !client) {
+      alert("MCP Not Connected");
+      return;
+    }
 
     const userMessage = {
       id: messages.length + 1,
@@ -43,15 +50,15 @@ export default function CareerChatbot() {
     setIsTyping(true);
 
     try {
-      // Create FormData to match backend expectation
-      const formData = new FormData();
-      formData.append("message", input);
-
-      const response = await axios.post("http://localhost:8000/chat", formData);
+      const response = await client.callTool({
+        name: "foundry_chat_architect",
+        arguments: { message: input, code: "", context: {} }
+      });
+      const data = JSON.parse(response.content[0].text);
 
       const botMessage = {
         id: messages.length + 2,
-        text: response.data.response,
+        text: data.response || data.reply,
         sender: "bot",
         timestamp: new Date(),
       };
@@ -85,15 +92,15 @@ export default function CareerChatbot() {
       className="flex flex-col min-h-screen bg-transparent"
     >
       <div className="p-6">
-        <Link to="/project-lab" className="flex items-center gap-2 text-neon hover:text-neon/80 transition-colors mb-8">
+        <Link to="/project-lab" className="flex items-center gap-2 text-[#fbc05c] hover:text-[#fbc05c]/80 transition-colors mb-8">
           <ArrowLeft size={20} />
           Back to Project Lab
         </Link>
 
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
-            <MessageCircle className="text-neon" size={32} />
-            <h1 className="text-3xl font-bold text-neon">Career Chatbot</h1>
+            <MessageCircle className="text-[#fbc05c]" size={32} />
+            <h1 className="text-3xl font-bold text-[#fbc05c]">Career Chatbot</h1>
           </div>
 
           <motion.div
@@ -119,7 +126,7 @@ export default function CareerChatbot() {
                     )}
                     <div
                       className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${message.sender === "user"
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 rounded-tr-none"
+                        ? "bg-[#fbc05c] text-white shadow-lg shadow-[#fbc05c]/20 rounded-tr-none"
                         : "bg-[#1a2332] border border-gray-700 text-gray-200 rounded-tl-none"
                         }`}
                     >
@@ -128,7 +135,7 @@ export default function CareerChatbot() {
                           {message.text}
                         </ReactMarkdown>
                       </div>
-                      <p className={`text-[10px] mt-1 text-right ${message.sender === "user" ? "text-blue-200" : "text-gray-500"}`}>
+                      <p className={`text-[10px] mt-1 text-right ${message.sender === "user" ? "text-[#fbc05c]" : "text-gray-500"}`}>
                         {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
@@ -150,7 +157,7 @@ export default function CareerChatbot() {
                   <div className="w-8 h-8 bg-neon rounded-full flex items-center justify-center">
                     <Bot size={16} className="text-black" />
                   </div>
-                  <div className="bg-gray-800 px-4 py-2 rounded-lg">
+                  <div className="bg-[#111111] px-4 py-2 rounded-lg">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -169,7 +176,7 @@ export default function CareerChatbot() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask me anything about your career..."
-                className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-gray-200 placeholder-gray-400 focus:outline-none focus:border-neon"
+                className="flex-1 bg-[#111111] border border-gray-600 rounded-lg px-4 py-2 text-gray-200 placeholder-gray-400 focus:outline-none focus:border-neon"
                 disabled={isTyping}
               />
               <button

@@ -10,9 +10,12 @@ import {
   Lightbulb,
   Upload,
   MessageSquare,
+  FolderPlus,
+  FilePlus,
+  Download,
 } from "lucide-react";
 import TopBar from "../components/TopBar";
-import axios from "axios";
+import { useMCP } from "../context/MCPProvider";
 
 export default function MyWorkspace() {
   const { projectId } = useParams();
@@ -25,23 +28,30 @@ export default function MyWorkspace() {
   const [aiMessage, setAiMessage] = useState("");
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { client, isConnected } = useMCP();
 
   // Load Project Data
   useEffect(() => {
-    if (projectId) {
-      axios.get(`http://localhost:8000/project/${projectId}`)
+    if (projectId && isConnected && client) {
+      client.callTool({
+        name: "foundry_get_project",
+        arguments: { projectId }
+      })
         .then(res => {
-          setProject(res.data);
-          // Determine completed phases based on current_phase from backend
-          // Assuming backend current_phase means "this is the one to WORK on", so all previous are done.
-          const completed = [];
-          if (res.data.phases) {
-            res.data.phases.forEach(p => {
-              if (p.id < res.data.current_phase) completed.push(p.id);
-            });
+          if (res.content[0].text) {
+            const data = JSON.parse(res.content[0].text);
+            if (!data.error) {
+              setProject(data);
+              const completed = [];
+              if (data.phases) {
+                data.phases.forEach(p => {
+                  if (p.id < data.current_phase) completed.push(p.id);
+                });
+              }
+              setCompletedPhases(completed);
+              setCurrentPhase(data.current_phase);
+            }
           }
-          setCompletedPhases(completed);
-          setCurrentPhase(res.data.current_phase);
           setLoading(false);
         })
         .catch(err => {
@@ -49,7 +59,7 @@ export default function MyWorkspace() {
           setLoading(false);
         });
     }
-  }, [projectId]);
+  }, [projectId, isConnected, client]);
 
   const phase = project?.phases?.find((p) => p.id === currentPhase);
   const [code, setCode] = useState("");
@@ -62,10 +72,11 @@ export default function MyWorkspace() {
   }, [phase, code]);
 
   const handlePhaseComplete = async () => {
+    if (!client) return;
     try {
-      await axios.post("http://localhost:8000/project/unlock-phase", {
-        project_id: projectId,
-        phase_id: currentPhase
+      await client.callTool({
+        name: "foundry_unlock_phase",
+        arguments: { projectId, phaseId: currentPhase }
       });
 
       setCompletedPhases([...completedPhases, currentPhase]);
@@ -74,8 +85,14 @@ export default function MyWorkspace() {
       setCurrentPhase(nextPhase);
 
       // Refresh project data to ensure sync
-      const res = await axios.get(`http://localhost:8000/project/${projectId}`);
-      setProject(res.data);
+      const res = await client.callTool({
+        name: "foundry_get_project",
+        arguments: { projectId }
+      });
+      const data = JSON.parse(res.content[0].text);
+      if (!data.error) {
+        setProject(data);
+      }
 
     } catch (err) {
       console.error("Failed to unlock phase", err);
@@ -132,7 +149,7 @@ export default function MyWorkspace() {
 
       <div className="flex-1 flex">
         {/* Left Sidebar - Project Phases */}
-        <div className="w-80 bg-slate-800/50 border-r border-slate-700/50 flex flex-col">
+        <div className="w-80 bg-[#111111]/50 border-r border-slate-700/50 flex flex-col">
           <div className="p-6 border-b border-slate-700/50">
             <button
               onClick={() => navigate("/project-lab")}
@@ -153,10 +170,10 @@ export default function MyWorkspace() {
                 key={phaseItem.id}
                 whileHover={{ scale: 1.02 }}
                 className={`p-4 rounded-lg border transition-all cursor-pointer ${currentPhase === phaseItem.id
-                  ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400"
+                  ? "bg-[#fbc05c]/20 border-[#fbc05c]/50 text-[#fbc05c]"
                   : completedPhases.includes(phaseItem.id) || phaseItem.id < currentPhase
                     ? "bg-green-500/20 border-green-500/50 text-green-400"
-                    : "bg-slate-800/50 border-slate-700/50 text-gray-500 cursor-not-allowed"
+                    : "bg-[#111111]/50 border-slate-700/50 text-gray-500 cursor-not-allowed"
                   }`}
                 onClick={() => {
                   // Allow clicking if it's the current phase or a completed one (to review)
@@ -189,7 +206,7 @@ export default function MyWorkspace() {
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
           {/* Phase Header */}
-          <div className="bg-slate-800/30 border-b border-slate-700/50 p-6">
+          <div className="bg-[#111111]/30 border-b border-slate-700/50 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-white">
@@ -202,7 +219,7 @@ export default function MyWorkspace() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowHints(!showHints)}
-                  className="bg-purple-500/20 border border-purple-500/50 text-purple-400 px-4 py-2 rounded-lg hover:bg-purple-500/30 transition-colors flex items-center gap-2"
+                  className="bg-[#fbc05c]/20 border border-[#fbc05c]/50 text-[#fbc05c] px-4 py-2 rounded-lg hover:bg-[#fbc05c]/30 transition-colors flex items-center gap-2"
                 >
                   <Lightbulb size={16} />
                   AI Guide
@@ -228,11 +245,11 @@ export default function MyWorkspace() {
                   initial={{ width: 0, opacity: 0 }}
                   animate={{ width: 320, opacity: 1 }}
                   exit={{ width: 0, opacity: 0 }}
-                  className="bg-slate-800/30 border-r border-slate-700/50 flex flex-col"
+                  className="bg-[#111111]/30 border-r border-slate-700/50 flex flex-col"
                 >
                   <div className="p-4 border-b border-slate-700/50">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <MessageSquare size={20} className="text-purple-400" />
+                      <MessageSquare size={20} className="text-[#fbc05c]" />
                       AI Guide
                     </h3>
                   </div>
@@ -245,7 +262,7 @@ export default function MyWorkspace() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={getAIHint}
-                      className="w-full bg-purple-500/20 border border-purple-500/50 text-purple-400 py-2 px-4 rounded-lg hover:bg-purple-500/30 transition-colors"
+                      className="w-full bg-[#fbc05c]/20 border border-[#fbc05c]/50 text-[#fbc05c] py-2 px-4 rounded-lg hover:bg-[#fbc05c]/30 transition-colors"
                     >
                       Get AI Hint
                     </motion.button>
@@ -253,7 +270,7 @@ export default function MyWorkspace() {
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-purple-500/10 border border-purple-500/30 text-purple-300 p-3 rounded-lg text-sm"
+                        className="bg-[#fbc05c]/10 border border-[#fbc05c]/30 text-[#fbc05c] p-3 rounded-lg text-sm"
                       >
                         {aiMessage}
                       </motion.div>
@@ -265,20 +282,33 @@ export default function MyWorkspace() {
 
             {/* Code Editor */}
             <div className="flex-1 flex flex-col">
-              <div className="bg-slate-900/50 border-b border-slate-700/50 p-4">
+              <div className="bg-[#0a0a0a]/50 border-b border-slate-700/50 p-4">
                 <div className="flex items-center gap-2">
-                  <Code size={20} className="text-cyan-400" />
+                  <Code size={20} className="text-[#fbc05c]" />
                   <span className="text-gray-300">Code Editor</span>
-                  <span className="text-xs text-gray-500 ml-auto">
+                  <span className="text-xs text-gray-500 ml-auto mr-4">
                     {project.tech_stack || "JavaScript/React"}
                   </span>
+                  
+                  {/* File Facilities */}
+                  <div className="flex items-center gap-2 border-l border-slate-700/50 pl-4">
+                    <button className="p-1.5 text-gray-400 hover:text-[#fbc05c] hover:bg-[#fbc05c]/10 rounded transition-colors" title="New File">
+                      <FilePlus size={18} />
+                    </button>
+                    <button className="p-1.5 text-gray-400 hover:text-[#fbc05c] hover:bg-[#fbc05c]/10 rounded transition-colors" title="New Folder">
+                      <FolderPlus size={18} />
+                    </button>
+                    <button className="p-1.5 text-gray-400 hover:text-[#fbc05c] hover:bg-[#fbc05c]/10 rounded transition-colors" title="Download">
+                      <Download size={18} />
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="flex-1 p-4 h-full">
                 <textarea
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="w-full h-full bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 text-gray-300 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full h-full bg-[#0a0a0a]/50 border border-slate-700/50 rounded-lg p-4 text-gray-300 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                   placeholder="Write your code here..."
                 />
               </div>

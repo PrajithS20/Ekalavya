@@ -42,11 +42,11 @@ export default function BusinessSidebar({ onLogout }) {
                     >
                         <button
                             onClick={toggleSidebar}
-                            className="bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-r border-slate-700/50 p-3 rounded-r-lg shadow-lg hover:shadow-orange-500/20 transition-all duration-300 group"
+                            className="bg-gradient-to-r from-[#111111]/95 to-[#0a0a0a]/95 backdrop-blur-xl border-r border-slate-700/50 p-3 rounded-r-lg shadow-lg hover:shadow-orange-500/20 transition-all duration-300 group"
                         >
                             <ChevronRight
                                 size={20}
-                                className="text-gray-400 group-hover:text-orange-400 transition-colors"
+                                className="text-gray-400 group-hover:text-[#fbc05c] transition-colors"
                             />
                         </button>
                     </motion.div>
@@ -79,7 +79,7 @@ export default function BusinessSidebar({ onLogout }) {
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, x: -10 }}
                                     >
-                                        <h1 className="text-white text-xl font-bold tracking-widest group-hover:text-orange-400 transition-colors">
+                                        <h1 className="text-white text-xl font-bold tracking-widest group-hover:text-[#fbc05c] transition-colors">
                                             EKALAVYA
                                         </h1>
                                     </motion.div>
@@ -105,13 +105,13 @@ export default function BusinessSidebar({ onLogout }) {
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: 0.1 * index }}
                                         className={`nav-item cursor-pointer flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative overflow-hidden group ${location.pathname === item.path
-                                            ? "bg-gradient-to-r from-orange-500/20 to-red-500/10 text-orange-400 border border-orange-500/30"
+                                            ? "bg-gradient-to-r from-orange-500/20 to-red-500/10 text-[#fbc05c] border border-[#fbc05c]/30"
                                             : "text-gray-400 hover:text-white hover:bg-white/5 border border-transparent"
                                             }`}
                                         onClick={() => navigate(item.path)}
                                     >
                                         {location.pathname === item.path && (
-                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500 shadow-[0_0_10px_2px_rgba(249,115,22,0.5)]"></div>
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#fbc05c] shadow-[0_0_10px_2px_rgba(249,115,22,0.5)]"></div>
                                         )}
                                         <item.icon
                                             size={18}
@@ -131,11 +131,11 @@ export default function BusinessSidebar({ onLogout }) {
                                 <div
                                     className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors group"
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center border border-white/10 group-hover:border-orange-500/50 transition-colors">
-                                        <User size={20} className="text-gray-300 group-hover:text-orange-400" />
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-[#0a0a0a] flex items-center justify-center border border-white/10 group-hover:border-[#fbc05c]/50 transition-colors">
+                                        <User size={20} className="text-gray-300 group-hover:text-[#fbc05c]" />
                                     </div>
                                     <div>
-                                        <p className="font-bold text-white text-sm group-hover:text-orange-400 transition-colors">
+                                        <p className="font-bold text-white text-sm group-hover:text-[#fbc05c] transition-colors">
                                             {sessionStorage.getItem("userName") || "Founder"}
                                         </p>
                                         <p className="text-xs text-gray-400">Visionary Level 1</p>

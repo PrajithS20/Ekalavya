@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import Sidebar from "./components/Sidebar";
 import LoginSignup from "./pages/LoginSignup";
+import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import ProjectLab from "./pages/ProjectLab";
 import UploadResume from "./pages/UploadResume";
@@ -17,26 +18,12 @@ import TheFoundry from "./pages/TheFoundry";
 import ResumeBuilder from "./pages/ResumeBuilder";
 import Profile from "./pages/Profile";
 import CommunityChat from "./pages/CommunityChat";
+import ResearchPage from "./pages/ResearchPage";
 import Galaxy from "./components/Galaxy";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { useMCP } from "./context/MCPProvider";
 
-import RoleSelection from "./pages/RoleSelection";
-import BusinessLayout from "./layouts/BusinessLayout";
-import BusinessDashboard from "./pages/business/BusinessDashboard";
-import StartupIncubator from "./pages/business/StartupIncubator";
-import Boardroom from "./pages/business/Boardroom";
-import GlobalMarkets from "./pages/business/GlobalMarkets";
-import GrowthEngine from "./pages/business/GrowthEngine";
-import BusinessNetwork from "./pages/business/BusinessNetwork";
 
-import SportsLayout from "./layouts/SportsLayout";
-import SportsDashboard from "./pages/sports/SportsDashboard";
-import SportsCareerGuidance from "./pages/sports/SportsCareerGuidance";
-import TrainingLog from "./pages/sports/TrainingLog";
-import TeamChat from "./pages/sports/TeamChat";
-import MyStats from "./pages/sports/MyStats";
-import Nutrition from "./pages/sports/Nutrition";
-import Venues from "./pages/sports/Venues";
-import Scouting from "./pages/sports/Scouting";
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -46,39 +33,32 @@ export default function App() {
   // Activity Tracking Logic
   const activityTimerRef = useRef(0);
 
+  const { client, isConnected } = useMCP();
+
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !isConnected || !client) return;
 
     const interval = setInterval(() => {
       activityTimerRef.current += 1;
 
-      // Every 10 minutes (10 * 60 = 600s? No, logic is tick every 1 min)
-      // User said "10 mins".
       if (activityTimerRef.current >= 10) {
-        // Send update
-        const token = sessionStorage.getItem("authToken");
         const today = new Date().toISOString().split('T')[0];
 
-        fetch("http://localhost:8000/profile/activity", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({
+        client.callTool({
+          name: "market_update_activity",
+          arguments: {
             date: today,
-            hours: 0.17, // roughly 10 mins
-            level: 2 // Assuming normal active level
-          })
+            hours: 0.17,
+            level: 2
+          }
         }).catch(err => console.error("Tracking error:", err));
 
-        // Reset
         activityTimerRef.current = 0;
       }
-    }, 60000); // 1 minute
+    }, 60000);
 
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isConnected, client]);
 
   const handleLogin = () => {
     setIsAuthenticated(true);
@@ -93,44 +73,18 @@ export default function App() {
   return (
     <Router>
       {!isAuthenticated ? (
-        <LoginSignup onLogin={handleLogin} />
+        <LandingPage onLogin={handleLogin} />
       ) : (
         <div className="flex h-screen overflow-hidden bg-transparent text-gray-200 relative">
 
           {/* Global Background Layer */}
-          <div className="fixed inset-0 z-0">
-            {/* The Image */}
-            <div className="absolute inset-0 bg-[url('/background.jpg')] bg-cover bg-center bg-no-repeat" />
-            {/* The Dimming Overlay */}
-            <div className="absolute inset-0 bg-black/60" />
+          <div className="fixed inset-0 z-0 bg-[#0a0a0a]">
+            {/* Ambient Yellow Glow */}
+            <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#fbc05c]/10 blur-[150px] pointer-events-none rounded-full" />
           </div>
 
           <div className="relative z-10 flex h-full w-full">
             <Routes>
-              {/* Onboarding Route - No Sidebar */}
-              <Route path="/onboarding" element={<RoleSelection />} />
-
-              {/* Business Path Routes */}
-              <Route path="/business" element={<BusinessLayout />}>
-                <Route index element={<BusinessDashboard />} />
-                <Route path="incubator" element={<StartupIncubator />} />
-                <Route path="network" element={<BusinessNetwork />} />
-                <Route path="boardroom" element={<Boardroom />} />
-                <Route path="markets" element={<GlobalMarkets />} />
-                <Route path="growth" element={<GrowthEngine />} />
-              </Route>
-
-              {/* Sports Path Routes */}
-              <Route path="/sports" element={<SportsLayout />}>
-                <Route index element={<SportsDashboard />} />
-                <Route path="guidance" element={<SportsCareerGuidance />} />
-                <Route path="training" element={<TrainingLog />} />
-                <Route path="chat" element={<TeamChat />} />
-                <Route path="stats" element={<MyStats />} />
-                <Route path="nutrition" element={<Nutrition />} />
-                <Route path="venues" element={<Venues />} />
-                <Route path="scouting" element={<Scouting />} />
-              </Route>
 
               {/* Main App Routes - With Sidebar */}
               <Route path="*" element={
@@ -144,6 +98,7 @@ export default function App() {
                       <Route path="/my-lab" element={<MyWorkspaceOverview />} />
                       <Route path="/collaborate" element={<GroupSession />} />
                       <Route path="/career-guidance" element={<CareerGuidance />} />
+                      <Route path="/research" element={<ResearchPage />} />
                       <Route path="/upload-resume" element={<UploadResume />} />
                       <Route path="/resume-builder" element={<ResumeBuilder />} />
                       <Route path="/resume-builder" element={<ResumeBuilder />} />
@@ -151,7 +106,7 @@ export default function App() {
                       <Route path="/offline-atlas" element={<OfflineAtlas />} />
                       <Route path="/job-hub" element={<JobHub />} />
                       <Route path="/project/:projectId" element={<ProjectPhases />} />
-                      <Route path="/project/:projectId/foundry" element={<TheFoundry />} />
+                      <Route path="/project/:projectId/foundry" element={<ErrorBoundary><TheFoundry /></ErrorBoundary>} />
                       <Route path="/workspace/:projectId" element={<MyWorkspace />} />
                       <Route path="/profile" element={<Profile />} />
                     </Routes>

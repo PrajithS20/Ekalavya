@@ -200,9 +200,9 @@ export default function MyLearning() {
             </button>
           </div>
 
-          <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700/50">
+          <div className="bg-gradient-to-br from-slate-800/50 to-[#0a0a0a]/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700/50">
             <div className="flex items-center gap-4 mb-8">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-r from-[#fbc05c] to-[#fbc05c] flex items-center justify-center">
                 <BookOpen size={32} className="text-white" />
               </div>
               <div>
@@ -225,8 +225,8 @@ export default function MyLearning() {
                   className={`relative p-6 rounded-xl border transition-all cursor-pointer group ${completedPhases.includes(phase.id)
                       ? "bg-green-500/10 border-green-500/50 hover:bg-green-500/20"
                       : phase.id <= Math.max(...completedPhases) + 1
-                        ? "bg-slate-700/30 border-slate-600/50 hover:border-cyan-500/50 hover:bg-cyan-500/5"
-                        : "bg-slate-800/30 border-slate-700/50 opacity-60 cursor-not-allowed"
+                        ? "bg-slate-700/30 border-slate-600/50 hover:border-[#fbc05c]/50 hover:bg-[#fbc05c]/5"
+                        : "bg-[#111111]/30 border-slate-700/50 opacity-60 cursor-not-allowed"
                     }`}
                   onClick={() => handlePhaseClick(phase.id)}
                 >
@@ -235,7 +235,7 @@ export default function MyLearning() {
                       className={`w-12 h-12 rounded-lg flex items-center justify-center ${completedPhases.includes(phase.id)
                           ? "bg-green-500/20"
                           : phase.id <= Math.max(...completedPhases) + 1
-                            ? "bg-cyan-500/20"
+                            ? "bg-[#fbc05c]/20"
                             : "bg-gray-500/20"
                         }`}
                     >
@@ -244,14 +244,14 @@ export default function MyLearning() {
                       ) : phase.id > Math.max(...completedPhases) + 1 ? (
                         <Lock size={24} className="text-gray-500" />
                       ) : (
-                        <Play size={24} className="text-cyan-400" />
+                        <Play size={24} className="text-[#fbc05c]" />
                       )}
                     </div>
                     <span
                       className={`text-sm font-medium px-3 py-1 rounded-full ${completedPhases.includes(phase.id)
                           ? "bg-green-500/20 text-green-400"
                           : phase.id <= Math.max(...completedPhases) + 1
-                            ? "bg-cyan-500/20 text-cyan-400"
+                            ? "bg-[#fbc05c]/20 text-[#fbc05c]"
                             : "bg-gray-500/20 text-gray-400"
                         }`}
                     >
@@ -263,7 +263,7 @@ export default function MyLearning() {
                     className={`text-xl font-semibold mb-3 ${completedPhases.includes(phase.id)
                         ? "text-green-400"
                         : phase.id <= Math.max(...completedPhases) + 1
-                          ? "text-white group-hover:text-cyan-400"
+                          ? "text-white group-hover:text-[#fbc05c]"
                           : "text-gray-500"
                       }`}
                   >
@@ -308,13 +308,13 @@ export default function MyLearning() {
                   </div>
 
                   {phase.id <= Math.max(...completedPhases) + 1 && (
-                    <div className="absolute inset-0 rounded-xl border-2 border-transparent group-hover:border-cyan-500/30 transition-all pointer-events-none" />
+                    <div className="absolute inset-0 rounded-xl border-2 border-transparent group-hover:border-[#fbc05c]/30 transition-all pointer-events-none" />
                   )}
                 </motion.div>
               ))}
             </div>
 
-            <div className="mt-8 p-6 bg-slate-800/30 rounded-xl border border-slate-700/50">
+            <div className="mt-8 p-6 bg-[#111111]/30 rounded-xl border border-slate-700/50">
               <h3 className="text-lg font-semibold text-white mb-2">
                 Learning Progress
               </h3>
@@ -325,7 +325,7 @@ export default function MyLearning() {
               <div className="flex items-center gap-4">
                 <div className="flex-1 bg-slate-700/50 rounded-full h-2">
                   <div
-                    className="bg-gradient-to-r from-cyan-500 to-blue-600 h-2 rounded-full transition-all duration-500"
+                    className="bg-gradient-to-r from-[#fbc05c] to-[#fbc05c] h-2 rounded-full transition-all duration-500"
                     style={{
                       width: `${(completedPhases.length / project.phases.length) * 100
                         }%`,

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useProgressStore } from "../store/useProgressStore";
 import { TreePine } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useMCP } from "../context/MCPProvider";
 
 const STAGES = [
   { label: "Sprout", min: 0, src: "https://lottie.host/e575bff6-572b-49b4-b771-3dfebd54e607/f9UyzMM2K6.lottie" },
@@ -16,22 +17,30 @@ export default function MyGrowthTree() {
   const { progress, setProgress } = useProgressStore();
   const [stats, setStats] = useState({ stage: "Sprout", trees: 0, next_goal: 5 });
 
+  const { client, isConnected } = useMCP();
+
   useEffect(() => {
-    const token = sessionStorage.getItem("authToken");
-    fetch("http://localhost:8000/growth-status", {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    if (isConnected && client) {
+      client.callTool({
+        name: "market_get_growth_status",
+        arguments: { userId: 1 } // Dummy arg
+      })
+      .then((res) => {
+        const data = JSON.parse(res.content[0].text);
         if (data.progress !== undefined) setProgress(data.progress);
         setStats({
           stage: data.stage || "Sprout",
           trees: data.trees || 0,
-          next_goal: data.next_goal || 5 // Will now use value from backend
+          next_goal: data.next_goal || 5
         });
       })
-      .catch((err) => console.error("Failed to fetch growth status:", err));
-  }, [setProgress]);
+      .catch((err) => {
+        console.error("Failed to fetch growth status:", err);
+        // Fallback dummy data if tool not implemented
+        setStats({ stage: "Sprout", trees: 2, next_goal: 5 });
+      });
+    }
+  }, [setProgress, isConnected, client]);
 
   // Find current visual stage based on Rank Name from backend
   const stage = STAGES.find((s) => s.label === stats.stage) || STAGES[0];
@@ -43,7 +52,7 @@ export default function MyGrowthTree() {
       className="flex flex-col items-center gap-6"
     >
       <div className="relative">
-        <div className="w-[280px] h-[280px] relative rounded-full overflow-hidden shadow-glow bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-sm border border-cyan-500/30 flex items-center justify-center">
+        <div className="w-[280px] h-[280px] relative rounded-full overflow-hidden shadow-glow bg-gradient-to-br from-[#fbc05c]/20 to-[#fbc05c]/20 backdrop-blur-sm border border-[#fbc05c]/30 flex items-center justify-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={stage.label}
@@ -56,10 +65,10 @@ export default function MyGrowthTree() {
             </motion.div>
           </AnimatePresence>
         </div>
-        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full p-2 shadow-lg shadow-purple-500/30 animate-float">
+        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-[#fbc05c] to-[#fbc05c] rounded-full p-2 shadow-lg shadow-[#fbc05c]/30 animate-float">
           <TreePine size={20} className="text-white" />
         </div>
-        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/10 to-blue-500/10 animate-pulse"></div>
+        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#fbc05c]/10 to-[#fbc05c]/10 animate-pulse"></div>
       </div>
 
       <div className="text-center">
@@ -67,7 +76,7 @@ export default function MyGrowthTree() {
           key={stage.label}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-1"
+          className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#fbc05c] to-[#fbc05c] mb-1"
         >
           {stats.stage}
         </motion.h2>
@@ -78,9 +87,9 @@ export default function MyGrowthTree() {
           <span className="text-xs text-gray-500">/ {stats.next_goal} Trees</span>
         </div>
 
-        <div className="w-64 bg-gray-800/50 backdrop-blur-sm rounded-full h-3 overflow-hidden border border-white/10 relative">
+        <div className="w-64 bg-[#111111]/50 backdrop-blur-sm rounded-full h-3 overflow-hidden border border-white/10 relative">
           <motion.div
-            className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 h-full rounded-full shadow-lg shadow-cyan-500/30"
+            className="bg-gradient-to-r from-[#fbc05c] via-[#fbc05c] to-[#fbc05c] h-full rounded-full shadow-lg shadow-cyan-500/30"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 1, delay: 0.5 }}

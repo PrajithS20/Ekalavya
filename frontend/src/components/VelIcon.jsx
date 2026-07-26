@@ -10,14 +10,17 @@ export const VelIcon = ({ size = 24, className = "" }) => {
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+            strokeLinecap="square"
+            strokeLinejoin="miter"
+            strokeMiterlimit="10"
             className={className}
         >
-            {/* Spear Head (Vel) */}
-            <path d="M12 2L12 22" /> {/* Shaft */}
-            <path d="M12 2C12 2 7 8 7 12C7 15 12 16 12 16C12 16 17 15 17 12C17 8 12 2 12 2Z" /> {/* Blade */}
-            <circle cx="12" cy="12" r="1.5" fill="currentColor" opacity="0.5" /> {/* Gem/Center */}
+            {/* Sharp Spear Head */}
+            <path d="M12 1 L7 12 L12 15 L17 12 Z" /> 
+            {/* Center Line and Shaft */}
+            <path d="M12 1 L12 23" />
+            {/* Minimal Base Crossbar */}
+            <path d="M9 15 L15 15" strokeWidth="2" />
         </svg>
     );
 };
