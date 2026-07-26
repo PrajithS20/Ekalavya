@@ -1,4 +1,4 @@
-# EKALAVYA: The Agentic Career Acceleration Ecosystem 🌱
+# EKALAVYA: The Agentic Career Acceleration Ecosystem 
 
 <div align="center">
   <h3>The World's 1st Agentic AI Platform for Collaborative Career Learning</h3>
